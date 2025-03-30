@@ -5,5 +5,7 @@ import (
 )
 
 func API(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("Hello from API !"))
+	if r.URL.Path == "/api/v1/ask" || r.URL.Path == "/api/v1/ask/" {
+		AskHandler(w, r)
+	}
 }

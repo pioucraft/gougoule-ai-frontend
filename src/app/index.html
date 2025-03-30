@@ -1,71 +1,20 @@
-<js-element
-    js="(function() {if(number.value == 5) return 'GOOD'; else return number.value;})()"
-    update="number"
-    >Number</js-element
->
-<button onclick="increment()">Increment</button>
-
-<if-element update="number" js="number.value == 5">
-    <p>Number is 5</p>
-</if-element>
-<elif-element update="number" js="number.value == 3">
-    <p>Number is not 5 but 3</p>
-</elif-element>
-<else-element update="number">
-    <p>
-        Number is neither 5 nor 3, instead, it's
-        <js-element update="number" js="number.value">Number</js-element>
-    </p>
-</else-element>
-
-<each-element update="numbers" js="numbers.value" element="element">
-    <div>
-        <p>
-            Number is:
-            <js-element update="numbers" js="element">Number</js-element>
-        </p>
-    </div>
+<h1>HI !!!!</h1>
+<each-element update="messages" js="messages.value" element="message">
+    <h1>
+        <js-element js="message.author" update="messages">Author</js-element>
+        <js-element js="message.text" update="messages">Message</js-element>
+    </h1>
 </each-element>
 
-<button onclick="numbers.set([...numbers.value, number.value])">
-    Add to numbers
-</button>
-
-<each-element update="theMatrix" js="theMatrix.value" element="level1">
-    <div>
-        <div>
-            <each-element
-                update="theMatrix"
-                js="level1"
-                element="level2"
-                style="display: flex; flex-direction: row"
-            >
-                <js-element update="theMatrix" js="level2">Element</js-element>
-                <if-element update="theMatrix" js="level2 != 5">.</if-element>
-                <else-element update="theMatrix">,</else-element>
-            </each-element>
-        </div>
-    </div>
-</each-element>
-<button onclick="theMatrix.set([...theMatrix.value, numbers.value])">
-    Add to matrix
-</button>
-
-<js-element js="'<h1>Hi</h1>'" update="number" html="true">Hi !</js-element>
-
-{@component}component1{/component}
+<style>
+    body {
+        padding: 16px;
+    }
+</style>
 
 <script>
-    const number = new dynamicVariable("number", 0);
-    const numbers = new dynamicVariable("numbers", []);
-
-    const theMatrix = new dynamicVariable("theMatrix", [
-        [1, 2, 3],
-        [4, 5, 6],
-        [7, 8, 9],
+    const messages = new dynamicVariable("messages", [
+        { text: "Hello world", author: "user" },
+        { text: "Hi !", author: "assistant" },
     ]);
-
-    function increment() {
-        number.set(number.value + 1);
-    }
 </script>
