@@ -29,7 +29,7 @@ func AskHandler(w http.ResponseWriter, r *http.Request) {
 	question := requestBody.Question
 
 	// Send the question to the ask function
-	err, answer := ask(question, w)
+	answer, err := ask(question, w)
 	if err != nil {
 		http.Error(w, "Error generating answer", http.StatusInternalServerError)
 		return
@@ -47,7 +47,7 @@ func AskHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write(jsonResponse)
 }
 
-func ask(question string, w http.ResponseWriter) (error, string) {
+func ask(question string, w http.ResponseWriter) (string, error) {
 	// Set up the request to the Groq API
 	url := "https://api.groq.com/openai/v1/chat/completions"
 
@@ -60,12 +60,12 @@ func ask(question string, w http.ResponseWriter) (error, string) {
 
 	jsonData, err := json.Marshal(data)
 	if err != nil {
-		return err, ""
+		return "", err
 	}
 
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
 	if err != nil {
-		return err, ""
+		return "", err
 	}
 
 	req.Header.Set("Content-Type", "application/json")
@@ -75,7 +75,7 @@ func ask(question string, w http.ResponseWriter) (error, string) {
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		return err, ""
+		return "", err
 	}
 	defer resp.Body.Close()
 
@@ -93,11 +93,11 @@ func ask(question string, w http.ResponseWriter) (error, string) {
 	err = json.NewDecoder(resp.Body).Decode(&respBody)
 	if err != nil {
 		http.Error(w, "Error decoding request body", http.StatusBadRequest)
-		return err, ""
+		return "", err
 	}
 
 	answer := respBody.Choices[0].Message.Content
-	return nil, answer
+	return answer, nil
 }
 
 func init() {
