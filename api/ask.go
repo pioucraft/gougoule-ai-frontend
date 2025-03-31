@@ -2,6 +2,7 @@ package api
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"log"
 	"net/http"
@@ -92,12 +93,27 @@ func ask(question string, w http.ResponseWriter) (string, error) {
 
 	err = json.NewDecoder(resp.Body).Decode(&respBody)
 	if err != nil {
-		http.Error(w, "Error decoding request body", http.StatusBadRequest)
 		return "", err
 	}
 
 	answer := respBody.Choices[0].Message.Content
+	err = saveToDB(question, answer)
+	if err != nil {
+		return "", err
+	}
 	return answer, nil
+}
+
+func saveToDB(question string, answer string) error {
+	_, err := Conn.Exec(context.Background(), "INSERT INTO messages (role, content) VALUES ($1, $2)", "user", question)
+	if err != nil {
+		return err
+	}
+	_, err = Conn.Exec(context.Background(), "INSERT INTO messages (role, content) VALUES ($1, $2)", "assistant", answer)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func init() {
