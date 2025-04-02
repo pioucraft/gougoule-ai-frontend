@@ -1,10 +1,29 @@
-<h1>HI !!!!</h1>
-<each-element update="messages" js="messages.value" element="message">
-    <h1>
-        <js-element js="message.author" update="messages">Author</js-element>
-        <js-element js="message.text" update="messages">Message</js-element>
-    </h1>
+<each-element
+    update="messagesHistory"
+    js="messagesHistory.value"
+    element="message"
+    class="flex flex-col gap-4"
+>
+    <div class="flex flex-col">
+        <js-element
+            class="font-semibold text-lg capitalize"
+            js="message.role"
+            update="messagesHistory"
+            >Author</js-element
+        >
+
+        <js-element js="message.content" update="messagesHistory"
+            >Message</js-element
+        >
+    </div>
 </each-element>
+<input
+    type="text"
+    id="message"
+    placeholder="Type your message here"
+    class="outline p-2"
+/>
+<button onclick="ask()" class="border p-2">Send</button>
 
 <style>
     body {
@@ -12,9 +31,69 @@
     }
 </style>
 
+<script src="/lib/cookies.js"></script>
 <script>
-    const messages = new dynamicVariable("messages", [
-        { text: "Hello world", author: "user" },
-        { text: "Hi !", author: "assistant" },
-    ]);
+    let password = getCookie("password");
+    if (!password) {
+        password = prompt("Enter your password");
+        setCookie("password", password, 365);
+    }
+    const messagesHistory = new dynamicVariable("messagesHistory", []);
+
+    fetchMessages();
+
+    async function ask() {
+        let message = document.getElementById("message").value;
+        if (!message) return;
+
+        let newMessagesHistory = [
+            ...messagesHistory.value,
+            {
+                role: "user",
+                content: message,
+            },
+        ];
+        messagesHistory.set(newMessagesHistory);
+
+        const answer = (
+            await (
+                await fetch("/api/v1/ask", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        Authorization: `Bearer ${password}`,
+                    },
+                    body: JSON.stringify({
+                        question: message,
+                    }),
+                })
+            ).json()
+        ).answer;
+        newMessagesHistory.push({
+            role: "assistant",
+            content: answer,
+        });
+        messagesHistory.set(newMessagesHistory);
+    }
+
+    async function fetchMessages() {
+        try {
+            const response = await fetch("/api/v1/messagesHistory", {
+                headers: {
+                    Authorization: `Bearer ${password}`,
+                },
+            });
+
+            if (response.status !== 200) {
+                alert("Error");
+                return;
+            }
+
+            const data = await response.json();
+            messagesHistory.set(data.messages || []);
+        } catch (error) {
+            console.error("Failed to fetch messages:", error);
+            alert("Error fetching messages");
+        }
+    }
 </script>
