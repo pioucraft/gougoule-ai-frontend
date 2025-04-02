@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -49,14 +50,19 @@ func AskHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func ask(question string, w http.ResponseWriter) (string, error) {
+	// Retrieve the messages history
+	messages, err := retrieveMessagesHistory()
+	if err != nil {
+		return "", err
+	}
+	messages = append(messages, map[string]string{"role": "user", "content": question})
+	fmt.Printf("Messages: %v\n", messages)
 	// Set up the request to the Groq API
 	url := "https://api.groq.com/openai/v1/chat/completions"
 
-	data := map[string]interface{}{
-		"model": "deepseek-r1-distill-llama-70b",
-		"messages": []map[string]string{
-			{"role": "user", "content": question},
-		},
+	data := map[string]any{
+		"model":    "deepseek-r1-distill-llama-70b",
+		"messages": messages,
 	}
 
 	jsonData, err := json.Marshal(data)
@@ -121,4 +127,23 @@ func init() {
 	if err != nil {
 		log.Fatal("Error loading .env file")
 	}
+}
+
+func retrieveMessagesHistory() ([]map[string]string, error) {
+	rows, err := Conn.Query(context.Background(), "SELECT role, content FROM messages ORDER BY created_at")
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var messages []map[string]string
+	for rows.Next() {
+		var role, content string
+		err := rows.Scan(&role, &content)
+		if err != nil {
+			return nil, err
+		}
+		messages = append(messages, map[string]string{"role": role, "content": content})
+	}
+	return messages, nil
+
 }
