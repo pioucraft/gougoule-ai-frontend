@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -56,7 +55,6 @@ func ask(question string, w http.ResponseWriter) (string, error) {
 		return "", err
 	}
 	messages = append(messages, map[string]string{"role": "user", "content": question})
-	fmt.Printf("Messages: %v\n", messages)
 	// Set up the request to the Groq API
 	url := "https://api.groq.com/openai/v1/chat/completions"
 
