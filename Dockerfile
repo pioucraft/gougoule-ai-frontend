@@ -25,8 +25,8 @@ FROM alpine:latest
 # Set the Current Working Directory inside the container
 WORKDIR /root/
 
-# Copy the Pre-built binary file from the previous stage
-COPY --from=build /app/main .
+# Copy everything from the previous stage
+COPY --from=build /app/ .
 
 # Command to run the executable
 CMD ["./main"]
