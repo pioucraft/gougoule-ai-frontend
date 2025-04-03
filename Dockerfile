@@ -1,7 +1,11 @@
-# Use the official Golang image to create a build artifact
+# Use the official Alpine-based Golang image to create a build artifact
 FROM golang:1.24.1-alpine AS build
+
 # Set the Current Working Directory inside the container
 WORKDIR /app
+
+# Install necessary dependencies
+RUN apk add --no-cache gcc musl-dev
 
 # Copy go mod and sum files
 COPY go.mod go.sum ./
@@ -15,7 +19,7 @@ COPY . .
 # Build the Go app
 RUN go build -o main .
 
-# Use a minimal image to package the compiled binary
+# Use the same Alpine image to package the compiled binary
 FROM alpine:latest
 
 # Set the Current Working Directory inside the container
