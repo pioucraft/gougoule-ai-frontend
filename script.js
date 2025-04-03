@@ -131,6 +131,14 @@ class dynamicVariable {
                                     `(function() { const ${element.attributes.element.value} = loopsVariables['${uuid}'][${i}]; return ${jsValue}})()`
                                 );
                             }
+                            if (descendant.attributes.onclick) {
+                                const clickValue =
+                                    descendant.attributes.onclick.value;
+                                descendant.setAttribute(
+                                    "onclick",
+                                    `(function() { const ${element.attributes.element.value} = loopsVariables['${uuid}'][${i}]; ${clickValue}})()`
+                                );
+                            }
                         }
                     }
                 } else {

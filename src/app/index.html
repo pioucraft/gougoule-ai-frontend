@@ -1,9 +1,9 @@
-<div class="max-w-full">
+<div class="w-full max-w-[800px]">
     <each-element
         update="messagesHistory"
         js="messagesHistory.value"
         element="message"
-        class="flex flex-col gap-4 max-w-[800px]"
+        class="flex flex-col gap-4 w-full"
     >
         <div class="flex flex-col">
             <if-element
@@ -19,6 +19,74 @@
                 >
             </if-element>
             <else-element update="messagesHistory">
+                <if-element update="messagesHistory" js="message.thinking">
+                    <div
+                        class="bg-black p-3 self-start max-w-[70%] my-10 border-l-gray-500 border-l-2"
+                    >
+                        <button
+                            class="text-gray-500 cursor-pointer flex flex-row gap-2"
+                            onclick="displayThinking(message)"
+                        >
+                            <if-element
+                                update="messagesHistory"
+                                js="message.content"
+                            >
+                                Thought for some time</if-element
+                            >
+                            <else-element update="messagesHistory">
+                                Thinking...</else-element
+                            >
+                            <if-element
+                                update="messagesHistory"
+                                js="message.showThinking"
+                                ><svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    stroke-width="1.5"
+                                    stroke="currentColor"
+                                    class="size-6"
+                                >
+                                    <path
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                        d="m4.5 15.75 7.5-7.5 7.5 7.5"
+                                    />
+                                </svg>
+                            </if-element>
+                            <else-element update="messagesHistory"
+                                ><svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    stroke-width="1.5"
+                                    stroke="currentColor"
+                                    class="size-6"
+                                >
+                                    <path
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                        d="m19.5 8.25-7.5 7.5-7.5-7.5"
+                                    />
+                                </svg>
+                            </else-element>
+                        </button>
+                        <if-element
+                            update="messagesHistory"
+                            js="message.showThinking"
+                        >
+                            <p>
+                                <js-element
+                                    js="message.thinking"
+                                    update="messagesHistory"
+                                    html="true"
+                                    class="text-gray-400"
+                                    >Thinking...</js-element
+                                >
+                            </p></if-element
+                        >
+                    </div>
+                </if-element>
                 <js-element
                     js="message.content"
                     update="messagesHistory"
@@ -34,10 +102,12 @@
             id="message"
             placeholder="Type your message here"
             class="outline p-2"
+            onchange="ask()"
         />
-        <button onclick="ask()" class="border p-2">Send</button>
+        <button class="border p-2 cursor-pointer">Send</button>
     </div>
 </div>
+
 <style>
     body {
         padding: 16px;
@@ -45,7 +115,7 @@
         color: white;
         display: flex;
         justify-content: center;
-        max-width: 100vw;
+        width: 100vw;
     }
 
     h1 {
@@ -114,6 +184,7 @@
 
     async function ask() {
         let message = document.getElementById("message").value;
+        document.getElementById("message").value = "";
         if (!message) return;
 
         let newMessagesHistory = [
@@ -144,15 +215,23 @@
         function readStream() {
             reader.read().then(function processText({ done, value }) {
                 if (done) {
-                    console.log("Stream finished");
                     return;
                 }
 
                 // Decode the chunk and replace the content of the last message
                 const text = decoder.decode(value);
-                newMessagesHistory[newMessagesHistory.length - 1].content =
+                newMessagesHistory[newMessagesHistory.length - 1].content +=
                     text;
-                messagesHistory.set(newMessagesHistory);
+
+                messagesHistory.set(
+                    newMessagesHistory.map((x, i) => {
+                        if (i == newMessagesHistory.length - 1) {
+                            return formatMessageObject(x);
+                            x;
+                        }
+                        return x;
+                    })
+                );
 
                 readStream();
             });
@@ -192,13 +271,32 @@
                 role: message.role,
                 content: marked.parse(message.content),
             };
+        } else if (!message.content.includes("</think>")) {
+            return {
+                role: message.role,
+                content: "",
+                thinking: marked.parse(message.content.split("<think>")[1]),
+                showThinking: true,
+            };
         }
         let [thinking, content] = message.content.split("</think>");
         thinking = thinking.split("<think>")[1];
         return {
             role: message.role,
             content: marked.parse(content),
-            thinking: thinking,
+            thinking: marked.parse(thinking),
+            showThinking: false,
         };
+    }
+
+    function displayThinking(message) {
+        messagesHistory.set(
+            messagesHistory.value.map((x) => {
+                if (x == message) {
+                    x.showThinking = !x.showThinking;
+                }
+                return x;
+            })
+        );
     }
 </script>

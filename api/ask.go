@@ -82,7 +82,7 @@ I never forget to focus on the user's message. The previous answers I gave shoul
 	url := "https://api.groq.com/openai/v1/chat/completions"
 
 	data := map[string]any{
-		"model":    "gemma2-9b-it",
+		"model":    "deepseek-r1-distill-llama-70b",
 		"messages": messages,
 		"stream":   true,
 	}
@@ -119,8 +119,7 @@ I never forget to focus on the user's message. The previous answers I gave shoul
 		Choices []Choice `json:"choices"`
 	}
 
-	answer := map[string]string{}
-	answer["answer"] = ""
+	answer := ""
 
 	flusher, ok := w.(http.Flusher)
 	if !ok {
@@ -146,22 +145,18 @@ I never forget to focus on the user's message. The previous answers I gave shoul
 		if len(respBody.Choices) == 0 {
 			continue
 		}
-		answer["answer"] += respBody.Choices[0].Delta.Content
-		answerJSON, err := json.Marshal(answer)
-		if err != nil {
-			return "", err
-		}
-		fmt.Fprintf(w, "data : %s", answerJSON)
+		answer += respBody.Choices[0].Delta.Content
+
+		fmt.Fprintf(w, "%s", respBody.Choices[0].Delta.Content)
 		flusher.Flush()
 
 	}
-	fmt.Fprintln(w, "data: [Done]")
-	flusher.Flush()
-	err = saveToDB(question, answer["answer"])
+
+	err = saveToDB(question, answer)
 	if err != nil {
 		return "", err
 	}
-	return answer["answer"], nil
+	return answer, nil
 }
 
 func saveToDB(question string, answer string) error {
