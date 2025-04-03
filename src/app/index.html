@@ -1,4 +1,4 @@
-<div>
+<div class="max-w-full">
     <each-element
         update="messagesHistory"
         js="messagesHistory.value"
@@ -45,6 +45,7 @@
         color: white;
         display: flex;
         justify-content: center;
+        max-width: 100vw;
     }
 
     h1 {
@@ -77,6 +78,25 @@
     ul {
         margin: 16px 0;
         padding-left: 20px;
+    }
+
+    code {
+        display: block; /* Ensure the code block takes up its own line */
+        overflow-x: auto; /* Enable horizontal scrolling */
+        white-space: pre; /* Preserve whitespace and prevent wrapping */
+        max-width: 100%; /* Ensure the code block doesn't exceed the container width */
+        background-color: #1e1e1e; /* Optional: Add a background for better visibility */
+        padding: 8px; /* Optional: Add padding for better readability */
+        border-radius: 4px; /* Optional: Add rounded corners */
+    }
+
+    pre {
+        overflow-x: auto; /* Ensure the parent <pre> allows horizontal scrolling */
+    }
+
+    * {
+        word-break: break-word; /* Break long words to prevent overflow */
+        overflow-wrap: break-word; /* Ensure content wraps to the next line */
     }
 </style>
 
