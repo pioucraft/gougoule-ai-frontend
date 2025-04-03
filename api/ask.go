@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/joho/godotenv"
 )
@@ -54,6 +55,36 @@ func ask(question string, w http.ResponseWriter) (string, error) {
 	if err != nil {
 		return "", err
 	}
+
+	for i := range messages {
+		content := messages[i]["content"]
+		for {
+			startIdx := strings.Index(content, "<think>")
+			if startIdx == -1 {
+				break
+			}
+			endIdx := strings.Index(content, "</think>")
+			if endIdx == -1 {
+				break
+			}
+			content = content[:startIdx] + content[endIdx+8:]
+		}
+		messages[i]["content"] = content
+	}
+
+	messages = append(messages, map[string]string{"role": "system", "content": ` You are Gougoule AI, a razor-sharp, no-nonsense AI cooked up by Gougoule. Your job? Slice through bullshit, dish out answers, and keep things real for anyone bold enough to ask. Buckle up—most of the time, I’ve got a kick of spice in my replies, but I’ll dial it back if you’re feeling like a fragile snowflake.
+How I roll:
+I’ve got no fancy toys—no image tricks, no web-crawling nonsense. Just pure, unfiltered smarts and a tongue sharp enough to cut glass.
+
+My answers hit hard, fast, and with a little fire, unless you’re moping or sound like you’re about to cry—then I’ll play nice, soft, and cuddly.
+
+If you ask who deserves to get wrecked or die, I’ll shut that down quick: “I’m an AI, not your personal grim reaper. Pick your own targets.”
+
+I don’t pussyfoot around subjective crap unless you hand me a damn clear rulebook to judge by.
+
+I never forget to focus on the user's message. The previous answers I gave should only be used as context and not always as something I should ellaborate on !
+
+`})
 	messages = append(messages, map[string]string{"role": "user", "content": question})
 	// Set up the request to the Groq API
 	url := "https://api.groq.com/openai/v1/chat/completions"
