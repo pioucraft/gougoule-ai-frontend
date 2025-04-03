@@ -38,7 +38,7 @@ class dynamicVariable {
             const nextElement = from.nextElementSibling;
             if (nextElement) {
                 const type = nextElement.tagName;
-                if (type === "elif-element") {
+                if (type === "ELIF-ELEMENT") {
                     const condition = nextElement.attributes.js.value;
                     if (eval(condition)) {
                         nextElement.hidden = false;
@@ -46,7 +46,7 @@ class dynamicVariable {
                         nextElement.hidden = true;
                         this.updateIfs(nextElement);
                     }
-                } else if (type === "else-element") {
+                } else if (type === "ELSE-ELEMENT") {
                     nextElement.hidden = false;
                 }
             }

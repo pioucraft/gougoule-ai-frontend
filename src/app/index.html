@@ -1,37 +1,87 @@
-<each-element
-    update="messagesHistory"
-    js="messagesHistory.value"
-    element="message"
-    class="flex flex-col gap-4"
->
-    <div class="flex flex-col">
-        <js-element
-            class="font-semibold text-lg capitalize"
-            js="message.role"
-            update="messagesHistory"
-            >Author</js-element
-        >
-
-        <js-element js="message.content" update="messagesHistory"
-            >Message</js-element
-        >
+<div>
+    <each-element
+        update="messagesHistory"
+        js="messagesHistory.value"
+        element="message"
+        class="flex flex-col gap-4 max-w-[800px]"
+    >
+        <div class="flex flex-col">
+            <if-element
+                class="bg-gray-800 p-3 rounded-2xl self-end max-w-[70%] my-10"
+                update="messagesHistory"
+                js="message.role == 'user'"
+            >
+                <js-element
+                    js="message.content"
+                    update="messagesHistory"
+                    html="true"
+                    >Message</js-element
+                >
+            </if-element>
+            <else-element update="messagesHistory">
+                <js-element
+                    js="message.content"
+                    update="messagesHistory"
+                    html="true"
+                    >Message</js-element
+                ></else-element
+            >
+        </div>
+    </each-element>
+    <div class="grid grid-cols-[auto_5rem] gap-4 mt-10">
+        <input
+            type="text"
+            id="message"
+            placeholder="Type your message here"
+            class="outline p-2"
+        />
+        <button onclick="ask()" class="border p-2">Send</button>
     </div>
-</each-element>
-<input
-    type="text"
-    id="message"
-    placeholder="Type your message here"
-    class="outline p-2"
-/>
-<button onclick="ask()" class="border p-2">Send</button>
-
+</div>
 <style>
     body {
         padding: 16px;
+        background-color: black;
+        color: white;
+        display: flex;
+        justify-content: center;
+    }
+
+    h1 {
+        font-size: 2rem;
+        margin-bottom: 16px;
+    }
+    h2 {
+        font-size: 1.5rem;
+        margin-bottom: 16px;
+    }
+    h3 {
+        font-size: 1.25rem;
+        margin-bottom: 16px;
+    }
+    h4 {
+        font-size: 1rem;
+        margin-bottom: 16px;
+    }
+    h5 {
+        font-size: 0.875rem;
+        margin-bottom: 16px;
+    }
+    h6 {
+        font-size: 0.75rem;
+        margin-bottom: 16px;
+    }
+    hr {
+        margin: 16px 0;
+    }
+    ul {
+        margin: 16px 0;
+        padding-left: 20px;
     }
 </style>
 
 <script src="/lib/cookies.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <script>
     let password = getCookie("password");
     if (!password) {
@@ -69,10 +119,12 @@
                 })
             ).json()
         ).answer;
-        newMessagesHistory.push({
-            role: "assistant",
-            content: answer,
-        });
+        newMessagesHistory.push(
+            formatMessageObject({
+                role: "assistant",
+                content: answer,
+            })
+        );
         messagesHistory.set(newMessagesHistory);
     }
 
@@ -90,10 +142,29 @@
             }
 
             const data = await response.json();
-            messagesHistory.set(data.messages || []);
+            messagesHistory.set(
+                data.messages.map((x) => formatMessageObject(x)) || []
+            );
         } catch (error) {
             console.error("Failed to fetch messages:", error);
             alert("Error fetching messages");
         }
+    }
+
+    function formatMessageObject(message) {
+        if (!message.content.includes("<think>")) {
+            return {
+                role: message.role,
+                content: marked.parse(message.content),
+            };
+        }
+        let [thinking, content] = message.content.split("</think>");
+        console.log(thinking, content);
+        thinking = thinking.split("<think>")[1];
+        return {
+            role: message.role,
+            content: marked.parse(content),
+            thinking: thinking,
+        };
     }
 </script>
