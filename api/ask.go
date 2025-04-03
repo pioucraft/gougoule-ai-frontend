@@ -1,9 +1,11 @@
 package api
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -31,22 +33,12 @@ func AskHandler(w http.ResponseWriter, r *http.Request) {
 	question := requestBody.Question
 
 	// Send the question to the ask function
-	answer, err := ask(question, w)
+	_, err = ask(question, w)
 	if err != nil {
+		fmt.Println("Error:", err)
 		http.Error(w, "Error generating answer", http.StatusInternalServerError)
 		return
 	}
-
-	// Return the answer as a JSON response
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	response := map[string]string{"answer": answer}
-	jsonResponse, err := json.Marshal(response)
-	if err != nil {
-		http.Error(w, "Error encoding response", http.StatusInternalServerError)
-		return
-	}
-	w.Write(jsonResponse)
 }
 
 func ask(question string, w http.ResponseWriter) (string, error) {
@@ -90,8 +82,9 @@ I never forget to focus on the user's message. The previous answers I gave shoul
 	url := "https://api.groq.com/openai/v1/chat/completions"
 
 	data := map[string]any{
-		"model":    "deepseek-r1-distill-llama-70b",
+		"model":    "gemma2-9b-it",
 		"messages": messages,
+		"stream":   true,
 	}
 
 	jsonData, err := json.Marshal(data)
@@ -116,27 +109,59 @@ I never forget to focus on the user's message. The previous answers I gave shoul
 	defer resp.Body.Close()
 
 	// Parse the response
-	type Message struct {
+	type Delta struct {
 		Content string `json:"content"`
 	}
 	type Choice struct {
-		Message Message `json:"message"`
+		Delta Delta `json:"delta"`
 	}
 	var respBody struct {
 		Choices []Choice `json:"choices"`
 	}
 
-	err = json.NewDecoder(resp.Body).Decode(&respBody)
-	if err != nil {
-		return "", err
-	}
+	answer := map[string]string{}
+	answer["answer"] = ""
 
-	answer := respBody.Choices[0].Message.Content
-	err = saveToDB(question, answer)
+	flusher, ok := w.(http.Flusher)
+	if !ok {
+		http.Error(w, "Streaming unsupported!", http.StatusInternalServerError)
+		return "", fmt.Errorf("streaming unsupported")
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Transfer-Encoding", "chunked")
+
+	scanner := bufio.NewScanner(resp.Body)
+	for scanner.Scan() {
+		data := scanner.Bytes()
+		if len(data) == 0 {
+			continue
+		}
+		if string(data) == ("data: [DONE]") {
+			break
+		}
+		err := json.Unmarshal((scanner.Bytes())[6:], &respBody)
+		if err != nil {
+			return "", err
+		}
+		if len(respBody.Choices) == 0 {
+			continue
+		}
+		answer["answer"] += respBody.Choices[0].Delta.Content
+		answerJSON, err := json.Marshal(answer)
+		if err != nil {
+			return "", err
+		}
+		fmt.Fprintf(w, "data : %s", answerJSON)
+		flusher.Flush()
+
+	}
+	fmt.Fprintln(w, "data: [Done]")
+	flusher.Flush()
+	err = saveToDB(question, answer["answer"])
 	if err != nil {
 		return "", err
 	}
-	return answer, nil
+	return answer["answer"], nil
 }
 
 func saveToDB(question string, answer string) error {

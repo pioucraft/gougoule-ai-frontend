@@ -125,26 +125,39 @@
         ];
         messagesHistory.set(newMessagesHistory);
 
-        const answer = (
-            await (
-                await fetch("/api/v1/ask", {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        Authorization: `Bearer ${password}`,
-                    },
-                    body: JSON.stringify({
-                        question: message,
-                    }),
-                })
-            ).json()
-        ).answer;
-        newMessagesHistory.push(
-            formatMessageObject({
-                role: "assistant",
-                content: answer,
-            })
-        );
+        const answer = await await fetch("/api/v1/ask", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${password}`,
+            },
+            body: JSON.stringify({
+                question: message,
+            }),
+        });
+        newMessagesHistory.push({
+            role: "assistant",
+            content: "",
+        });
+        const reader = answer.body.getReader();
+        const decoder = new TextDecoder();
+        function readStream() {
+            reader.read().then(function processText({ done, value }) {
+                if (done) {
+                    console.log("Stream finished");
+                    return;
+                }
+
+                // Decode the chunk and replace the content of the last message
+                const text = decoder.decode(value);
+                newMessagesHistory[newMessagesHistory.length - 1].content =
+                    text;
+                messagesHistory.set(newMessagesHistory);
+
+                readStream();
+            });
+        }
+        readStream();
         messagesHistory.set(newMessagesHistory);
     }
 
@@ -162,9 +175,11 @@
             }
 
             const data = await response.json();
-            messagesHistory.set(
-                data.messages.map((x) => formatMessageObject(x)) || []
-            );
+            if (data.messages)
+                messagesHistory.set(
+                    data.messages.map((x) => formatMessageObject(x))
+                );
+            else messagesHistory.set([]);
         } catch (error) {
             console.error("Failed to fetch messages:", error);
             alert("Error fetching messages");
