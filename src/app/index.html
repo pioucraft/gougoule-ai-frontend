@@ -159,7 +159,6 @@
             };
         }
         let [thinking, content] = message.content.split("</think>");
-        console.log(thinking, content);
         thinking = thinking.split("<think>")[1];
         return {
             role: message.role,
