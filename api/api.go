@@ -1,6 +1,7 @@
 package api
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -29,6 +30,8 @@ func API(w http.ResponseWriter, r *http.Request) {
 }
 
 func init() {
+	fmt.Println(("Hello from Gougoule AI - the most powerful AI in the world from the most powerful company in the world"))
+	fmt.Println("Gougoule AI is a product of Gougoule Inc. - the most powerful company in the world")
 	err := godotenv.Load()
 	if err != nil {
 		log.Fatal("Error loading .env file")
