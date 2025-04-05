@@ -7,10 +7,6 @@ WORKDIR /app
 # Install necessary dependencies
 RUN apk add --no-cache gcc musl-dev
 
-# Create cache directories and ensure they're included in the build cache
-RUN mkdir -p /app/bin && mkdir -p /tmp/go-cache
-RUN echo "Preserving Go build cache..." 
-
 # Copy go mod and sum files
 COPY go.mod go.sum ./
 
@@ -21,7 +17,7 @@ RUN go mod download
 COPY . .
 
 # Build the Go app with build cache enabled
-RUN GOBUILD=-i go build -o main . 
+RUN go build -o main . 
 
 # Use the same Alpine image to package the compiled binary
 FROM alpine:latest
