@@ -107,12 +107,12 @@
             </each-element>
             <div class="grid grid-cols-[auto_5rem] gap-4 mt-10">
                 <textarea
-                    type="text"
+                    name=""
                     id="message"
                     placeholder="Type your message here"
                     class="outline p-2"
                     onchange="ask()"
-                /></textarea>
+                ></textarea>
                 <button class="border p-2 cursor-pointer">Send</button>
             </div>
             <div class="h-4"></div>
@@ -250,6 +250,7 @@
     }
 
     function formatMessageObject(message) {
+        if (message.role == "user") return message;
         if (!message.content.includes("<think>")) {
             return {
                 role: message.role,
