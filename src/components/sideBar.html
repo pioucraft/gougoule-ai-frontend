@@ -28,11 +28,18 @@
                 <a
                     href="/"
                     class="flex flex-row gap-2 p-2 items-center text-ellipsis whitespace-nowrap overflow-hidden"
-                    ><img
-                        src="/logo.svg"
-                        class="invert h-[2em] bg-white rounded-full"
-                    />Gougoule AI</a
                 >
+                    <div
+                        class="h-[2em] w-[2em] bg-white rounded-full overflow-hidden"
+                    >
+                        <img
+                            src="/logo.svg"
+                            alt="Logo"
+                            class="h-full w-full object-contain"
+                        />
+                    </div>
+                    Gougoule AI
+                </a>
             </div>
         </div>
 
@@ -84,7 +91,7 @@
 <script>
     const conversations = new dynamicVariable("conversations", []);
 
-    const showSideBar = new dynamicVariable("showSideBar", false);
+    const showSideBar = new dynamicVariable("showSideBar", true);
 
     async function fetchConversations() {
         const response = await fetch("/api/v1/retrieveConversations", {
@@ -106,9 +113,10 @@
                 }
             }
         );
+        if (window.innerWidth < window.innerHeight) {
+            console.log("mobile");
+            showSideBar.set(false);
+        } else showSideBar.set(true);
     }
     fetchConversations();
-    if (window.innerWidth > 1100) {
-        showSideBar.set(true);
-    }
 </script>

@@ -71,9 +71,7 @@ class dynamicVariable {
 
     updateJS() {
         const elements = Array.from(
-            document.querySelectorAll(
-                `js-element[update~="${this.name}"]:not([hidden])`
-            )
+            document.querySelectorAll(`js-element[update~="${this.name}"]`)
         ).filter((element) => {
             let parent = element.parentElement;
             while (parent) {

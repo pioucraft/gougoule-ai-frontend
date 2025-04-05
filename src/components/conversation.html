@@ -106,13 +106,13 @@
                 </div>
             </each-element>
             <div class="grid grid-cols-[auto_5rem] gap-4 mt-10">
-                <input
+                <textarea
                     type="text"
                     id="message"
                     placeholder="Type your message here"
                     class="outline p-2"
                     onchange="ask()"
-                />
+                /></textarea>
                 <button class="border p-2 cursor-pointer">Send</button>
             </div>
             <div class="h-4"></div>
@@ -222,6 +222,7 @@
         const decoder = new TextDecoder();
         function readStream() {
             reader.read().then(function processText({ done, value }) {
+                scrollToBottom();
                 if (done) {
                     return;
                 }
