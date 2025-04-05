@@ -1,0 +1,35 @@
+<script>
+    const url = new URL(window.location.href);
+    var conversation_id = url.pathname.split("/")[2];
+
+    async function fetchMessages() {
+        try {
+            const response = await fetch(
+                `/api/v1/messagesHistory/${conversation_id}`,
+                {
+                    headers: {
+                        Authorization: `Bearer ${password}`,
+                    },
+                }
+            );
+
+            if (response.status !== 200) {
+                alert("Error");
+                return;
+            }
+
+            const data = await response.json();
+            if (data.messages)
+                messagesHistory.set(
+                    data.messages.map((x) => formatMessageObject(x))
+                );
+            else messagesHistory.set([]);
+        } catch (error) {
+            console.error("Failed to fetch messages:", error);
+            alert("Error fetching messages");
+        }
+        scrollToBottom();
+    }
+    fetchMessages();
+</script>
+{@component}conversation{/component}

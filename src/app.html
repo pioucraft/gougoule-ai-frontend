@@ -5,6 +5,15 @@
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>Document</title>
+        <script src="/lib/cookies.js"></script>
+
+        <script>
+            var password = getCookie("password");
+            if (!password) {
+                password = prompt("Enter your password");
+                setCookie("password", password, 365);
+            }
+        </script>
     </head>
     <body>
         {@app}

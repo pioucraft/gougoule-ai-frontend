@@ -22,7 +22,8 @@ func AskHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Access question from the request body
 	var requestBody struct {
-		Question string `json:"question"`
+		Question       string  `json:"question"`
+		ConversationID *string `json:"conversation_id"`
 	}
 
 	err := json.NewDecoder(r.Body).Decode(&requestBody)
@@ -31,9 +32,10 @@ func AskHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	question := requestBody.Question
+	conversation_id := requestBody.ConversationID
 
 	// Send the question to the ask function
-	_, err = ask(question, w)
+	_, err = ask(question, conversation_id, w)
 	if err != nil {
 		fmt.Println("Error:", err)
 		http.Error(w, "Error generating answer", http.StatusInternalServerError)
@@ -41,9 +43,16 @@ func AskHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func ask(question string, w http.ResponseWriter) (string, error) {
+func ask(question string, conversation_id *string, w http.ResponseWriter) (string, error) {
 	// Retrieve the messages history
-	messages, err := retrieveMessagesHistory()
+	if conversation_id == nil {
+		id, err := createConversation(question)
+		conversation_id = &id
+		if err != nil {
+			return "", err
+		}
+	}
+	messages, err := retrieveMessagesHistory(*conversation_id)
 	if err != nil {
 		return "", err
 	}
@@ -126,8 +135,9 @@ I never forget to focus on the user's message. The previous answers I gave shoul
 		http.Error(w, "Streaming unsupported!", http.StatusInternalServerError)
 		return "", fmt.Errorf("streaming unsupported")
 	}
-	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Content-Type", "text/plain")
 	w.Header().Set("Transfer-Encoding", "chunked")
+	w.Header().Set("conversation_id", *conversation_id)
 
 	scanner := bufio.NewScanner(resp.Body)
 	for scanner.Scan() {
@@ -152,19 +162,19 @@ I never forget to focus on the user's message. The previous answers I gave shoul
 
 	}
 
-	err = saveToDB(question, answer)
+	err = saveToDB(question, answer, *conversation_id)
 	if err != nil {
 		return "", err
 	}
 	return answer, nil
 }
 
-func saveToDB(question string, answer string) error {
-	_, err := Conn.Exec(context.Background(), "INSERT INTO messages (role, content) VALUES ($1, $2)", "user", question)
+func saveToDB(question string, answer string, conversation_id string) error {
+	_, err := Conn.Exec(context.Background(), "INSERT INTO messages (role, content, conversation_id) VALUES ($1, $2, $3)", "user", question, conversation_id)
 	if err != nil {
 		return err
 	}
-	_, err = Conn.Exec(context.Background(), "INSERT INTO messages (role, content) VALUES ($1, $2)", "assistant", answer)
+	_, err = Conn.Exec(context.Background(), "INSERT INTO messages (role, content, conversation_id) VALUES ($1, $2, $3)", "assistant", answer, conversation_id)
 	if err != nil {
 		return err
 	}
@@ -178,8 +188,8 @@ func init() {
 	}
 }
 
-func retrieveMessagesHistory() ([]map[string]string, error) {
-	rows, err := Conn.Query(context.Background(), "SELECT role, content FROM messages ORDER BY created_at")
+func retrieveMessagesHistory(conversation_id string) ([]map[string]string, error) {
+	rows, err := Conn.Query(context.Background(), "SELECT role, content FROM messages WHERE conversation_id = $1 ORDER BY created_at", conversation_id)
 	if err != nil {
 		return nil, err
 	}
@@ -195,4 +205,20 @@ func retrieveMessagesHistory() ([]map[string]string, error) {
 	}
 	return messages, nil
 
+}
+
+func createConversation(question string) (string, error) {
+	rows, err := Conn.Query(context.Background(), "INSERT INTO conversations (title) VALUES ($1) RETURNING id", question)
+	if err != nil {
+		return "", err
+	}
+	defer rows.Close()
+	var id string
+	for rows.Next() {
+		err := rows.Scan(&id)
+		if err != nil {
+			return "", err
+		}
+	}
+	return id, nil
 }

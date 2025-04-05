@@ -6,14 +6,14 @@ import (
 	"net/http"
 )
 
-func MessagesHistoryHandler(w http.ResponseWriter, r *http.Request) {
+func MessagesHistoryHandler(w http.ResponseWriter, r *http.Request, conversation_id string) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
 	// Retrieve the messages history
-	messages, err := MessagesHistory()
+	messages, err := MessagesHistory(conversation_id)
 	if err != nil {
 		http.Error(w, "Error retrieving messages history", http.StatusInternalServerError)
 		return
@@ -33,8 +33,8 @@ func MessagesHistoryHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write(jsonResponse)
 }
 
-func MessagesHistory() ([]map[string]string, error) {
-	rows, err := Conn.Query(context.Background(), "SELECT role, content FROM messages ORDER BY created_at")
+func MessagesHistory(conversation_id string) ([]map[string]string, error) {
+	rows, err := Conn.Query(context.Background(), "SELECT role, content FROM messages WHERE conversation_id = $1 ORDER BY created_at", conversation_id)
 	if err != nil {
 		return nil, err
 	}

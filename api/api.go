@@ -19,8 +19,11 @@ func API(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path == "/api/v1/ask" || r.URL.Path == "/api/v1/ask/" {
 		AskHandler(w, r)
 		return
-	} else if r.URL.Path == "/api/v1/messagesHistory" || r.URL.Path == "/api/v1/messagesHistory/" {
-		MessagesHistoryHandler(w, r)
+	} else if strings.HasPrefix(r.URL.Path, "/api/v1/messagesHistory/") {
+		MessagesHistoryHandler(w, r, r.URL.Path[len("/api/v1/messagesHistory/"):])
+		return
+	} else if r.URL.Path == "/api/v1/retrieveConversations" || r.URL.Path == "/api/v1/retrieveConversations/" {
+		RetrieveConversationsHandler(w, r)
 		return
 	}
 }

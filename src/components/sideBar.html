@@ -1,0 +1,58 @@
+<div class="bg-zinc-900 p-4 h-[100dvh] overflow-auto">
+    <div class="border-b-1 mb-4">
+        <div class="hover:bg-zinc-800 rounded-xl cursor-pointer mb-4 block">
+            <a
+                href="/"
+                class="flex flex-row gap-2 p-2 items-center text-ellipsis whitespace-nowrap overflow-hidden"
+                ><img
+                    src="/logo.svg"
+                    class="invert h-[2em] bg-white rounded-full"
+                />Gougoule AI</a
+            >
+        </div>
+    </div>
+
+    <each-element
+        update="conversations"
+        js="conversations.value"
+        element="conversation"
+        class="flex flex-col gap-3"
+    >
+        <div class="hover:bg-zinc-800 rounded-xl cursor-pointer block">
+            <a
+                class="conversationLink block p-2 text-ellipsis whitespace-nowrap overflow-hidden"
+                href=""
+                ><js-element js="conversation.title" update="conversations"
+                    >Title</js-element
+                ></a
+            >
+        </div>
+    </each-element>
+</div>
+
+<script>
+    const conversations = new dynamicVariable("conversations", []);
+
+    async function fetchConversations() {
+        const response = await fetch("/api/v1/retrieveConversations", {
+            headers: {
+                Authorization: `Bearer ${password}`,
+            },
+        });
+        if (!response.ok) {
+            throw new Error("Network response was not ok");
+        }
+        const data = await response.json();
+        conversations.set(data);
+        Array.from(document.getElementsByClassName("conversationLink")).forEach(
+            (element, index) => {
+                if (index > 0) {
+                    element.attributes.href.value = `/conversation/${
+                        data[index - 1].id
+                    }`;
+                }
+            }
+        );
+    }
+    fetchConversations();
+</script>
