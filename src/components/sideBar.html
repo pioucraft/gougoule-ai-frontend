@@ -1,8 +1,8 @@
 <if-element update="showSideBar" js="showSideBar.value">
     <div
-        class="bg-zinc-900 p-4 h-[100dvh] overflow-auto max-[1100px]:fixed max-[1100px]:min-w-[300px] max-[1100px]:max-w-[500px] max-[1100px]:w-3/5"
+        class="bg-zinc-900 p-4 h-[100dvh] overflow-auto max-[100vh]:fixed max-[100vh]:min-w-[300px] max-[100vh]:max-w-[500px] max-[100vh]:w-3/5"
     >
-        <div class="min-[1100px]:hidden pb-3 px-1">
+        <div class="min-[100vh]:hidden pb-3 px-1">
             <button
                 class="cursor:pointer"
                 onclick="showSideBar.set(!showSideBar.value)"
@@ -58,7 +58,7 @@
 </if-element>
 <else-element update="showSideBar">
     <div
-        class="fixed min-[1100px]:hidden text-white z-10 w-full h-14 bg-black border-b-2 flex flex-row items-center pl-4"
+        class="fixed min-[100vh]:hidden text-white z-10 w-full h-14 bg-black border-b-2 flex flex-row items-center pl-4"
     >
         <button
             class="cursor:pointer"
