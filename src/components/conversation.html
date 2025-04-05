@@ -1,6 +1,9 @@
-<div class="grid grid-cols-[20rem_auto] w-full">
+<div class="grid grid-cols-[20rem_auto] max-[1100px]:grid-cols-[1fr] w-full">
     {@component}sideBar{/component}
-    <div class="flex justify-center h-[100dvh] overflow-auto">
+
+    <div
+        class="flex justify-center h-[100dvh] overflow-auto px-2 max-[1100px]:pt-10"
+    >
         <div class="w-full max-w-[800px]">
             <each-element
                 update="messagesHistory"

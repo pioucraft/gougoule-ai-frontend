@@ -202,7 +202,7 @@ class elifElement extends HTMLElement {
     }
 
     static get observedAttributes() {
-        return ["js"];
+        return ["js", "update"];
     }
 }
 

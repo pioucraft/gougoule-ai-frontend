@@ -1,37 +1,90 @@
-<div class="bg-zinc-900 p-4 h-[100dvh] overflow-auto">
-    <div class="border-b-1 mb-4">
-        <div class="hover:bg-zinc-800 rounded-xl cursor-pointer mb-4 block">
-            <a
-                href="/"
-                class="flex flex-row gap-2 p-2 items-center text-ellipsis whitespace-nowrap overflow-hidden"
-                ><img
-                    src="/logo.svg"
-                    class="invert h-[2em] bg-white rounded-full"
-                />Gougoule AI</a
-            >
-        </div>
-    </div>
-
-    <each-element
-        update="conversations"
-        js="conversations.value"
-        element="conversation"
-        class="flex flex-col gap-3"
+<if-element update="showSideBar" js="showSideBar.value">
+    <div
+        class="bg-zinc-900 p-4 h-[100dvh] overflow-auto max-[1100px]:fixed max-[1100px]:min-w-[300px] max-[1100px]:max-w-[500px] max-[1100px]:w-3/5"
     >
-        <div class="hover:bg-zinc-800 rounded-xl cursor-pointer block">
-            <a
-                class="conversationLink block p-2 text-ellipsis whitespace-nowrap overflow-hidden"
-                href=""
-                ><js-element js="conversation.title" update="conversations"
-                    >Title</js-element
-                ></a
+        <div class="min-[1100px]:hidden pb-3 px-1">
+            <button
+                class="cursor:pointer"
+                onclick="showSideBar.set(!showSideBar.value)"
             >
+                <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke-width="1.5"
+                    stroke="currentColor"
+                    class="size-6"
+                >
+                    <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        d="m18.75 4.5-7.5 7.5 7.5 7.5m-6-15L5.25 12l7.5 7.5"
+                    />
+                </svg>
+            </button>
         </div>
-    </each-element>
-</div>
+        <div class="border-b-1 mb-4">
+            <div class="hover:bg-zinc-800 rounded-xl cursor-pointer mb-4 block">
+                <a
+                    href="/"
+                    class="flex flex-row gap-2 p-2 items-center text-ellipsis whitespace-nowrap overflow-hidden"
+                    ><img
+                        src="/logo.svg"
+                        class="invert h-[2em] bg-white rounded-full"
+                    />Gougoule AI</a
+                >
+            </div>
+        </div>
 
+        <each-element
+            update="conversations"
+            js="conversations.value"
+            element="conversation"
+            class="flex flex-col gap-3"
+        >
+            <div class="hover:bg-zinc-800 rounded-xl cursor-pointer block">
+                <a
+                    class="conversationLink block p-2 text-ellipsis whitespace-nowrap overflow-hidden"
+                    href=""
+                    ><js-element
+                        js="conversation.title"
+                        update="conversations showSideBar"
+                        >Title</js-element
+                    ></a
+                >
+            </div>
+        </each-element>
+    </div>
+</if-element>
+<else-element update="showSideBar">
+    <div
+        class="fixed min-[1100px]:hidden text-white z-10 w-full h-14 bg-black border-b-2 flex flex-row items-center pl-4"
+    >
+        <button
+            class="cursor:pointer"
+            onclick="showSideBar.set(!showSideBar.value)"
+        >
+            <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke-width="1.5"
+                stroke="currentColor"
+                class="size-6"
+            >
+                <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"
+                />
+            </svg>
+        </button>
+    </div>
+</else-element>
 <script>
     const conversations = new dynamicVariable("conversations", []);
+
+    const showSideBar = new dynamicVariable("showSideBar", false);
 
     async function fetchConversations() {
         const response = await fetch("/api/v1/retrieveConversations", {
@@ -55,4 +108,7 @@
         );
     }
     fetchConversations();
+    if (window.innerWidth > 1100) {
+        showSideBar.set(true);
+    }
 </script>
