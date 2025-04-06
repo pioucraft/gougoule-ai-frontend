@@ -1,3 +1,4 @@
+{@component}conversation{/component}
 <script>
     const url = new URL(window.location.href);
     var conversation_id = url.pathname.split("/")[2];
@@ -30,6 +31,7 @@
         }
         scrollToBottom();
     }
-    fetchMessages();
+    window.addEventListener("load", function () {
+        fetchMessages();
+    });
 </script>
-{@component}conversation{/component}

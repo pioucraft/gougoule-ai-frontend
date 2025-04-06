@@ -34,7 +34,8 @@
                             >
                                 <button
                                     class="text-gray-500 cursor-pointer flex flex-row gap-2"
-                                    onclick="displayThinking(message)"
+                                    data-dynamic-js-onclick="displayThinking(message)"
+                                    data-update="messagesHistory"
                                 >
                                     <if-element
                                         update="messagesHistory"
@@ -183,8 +184,6 @@
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 
 <script>
-    const messagesHistory = new dynamicVariable("messagesHistory", []);
-
     async function ask() {
         let message = document.getElementById("message").value;
         document.getElementById("message").value = "";
@@ -289,4 +288,8 @@
         const container = document.querySelector(".flex.justify-center");
         container.scrollTop = container.scrollHeight;
     }
+    var messagesHistory;
+    window.addEventListener("load", function () {
+        messagesHistory = new dynamicVariable("messagesHistory", []);
+    });
 </script>

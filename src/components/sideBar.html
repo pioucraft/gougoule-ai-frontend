@@ -44,15 +44,16 @@
         </div>
 
         <each-element
-            update="conversations"
+            update="conversations showSideBar"
             js="conversations.value"
             element="conversation"
             class="flex flex-col gap-3"
         >
             <div class="hover:bg-zinc-800 rounded-xl cursor-pointer block">
                 <a
-                    class="conversationLink block p-2 text-ellipsis whitespace-nowrap overflow-hidden"
-                    href=""
+                    class="block p-2 text-ellipsis whitespace-nowrap overflow-hidden"
+                    data-update="conversations showSideBar"
+                    data-dynamic-href="`/conversation/${conversation.id}`"
                     ><js-element
                         js="conversation.title"
                         update="conversations showSideBar"
@@ -89,9 +90,23 @@
     </div>
 </else-element>
 <script>
-    const conversations = new dynamicVariable("conversations", []);
+    var conversations;
+    var showSideBar;
+    window.addEventListener("load", function () {
+        conversations = new dynamicVariable("conversations", []);
 
-    const showSideBar = new dynamicVariable("showSideBar", true);
+        showSideBar = new dynamicVariable(
+            "showSideBar",
+            window.innerWidth > window.innerHeight ? true : false
+        );
+        fetchConversations();
+    });
+
+    window.addEventListener("resize", function () {
+        if (window.innerWidth > window.innerHeight) {
+            showSideBar.set(true);
+        }
+    });
 
     async function fetchConversations() {
         const response = await fetch("/api/v1/retrieveConversations", {
@@ -104,19 +119,5 @@
         }
         const data = await response.json();
         conversations.set(data);
-        Array.from(document.getElementsByClassName("conversationLink")).forEach(
-            (element, index) => {
-                if (index > 0) {
-                    element.attributes.href.value = `/conversation/${
-                        data[index - 1].id
-                    }`;
-                }
-            }
-        );
-        if (window.innerWidth < window.innerHeight) {
-            console.log("mobile");
-            showSideBar.set(false);
-        } else showSideBar.set(true);
     }
-    fetchConversations();
 </script>
