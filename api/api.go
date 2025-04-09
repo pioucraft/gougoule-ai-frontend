@@ -29,6 +29,12 @@ func API(w http.ResponseWriter, r *http.Request) {
 	} else if r.URL.Path == "/api/v1/aiProviders" || r.URL.Path == "/api/v1/aiProviders/" {
 		AIProvidersHandler(w, r)
 		return
+	} else if r.URL.Path == "/api/v1/models" || r.URL.Path == "/api/v1/models/" {
+		AIModels(w, r)
+		return
+	} else {
+		http.Error(w, "Invalid endpoint", http.StatusNotFound)
+		return
 	}
 }
 

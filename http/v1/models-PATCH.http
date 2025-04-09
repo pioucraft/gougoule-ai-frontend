@@ -1,0 +1,9 @@
+PATCH http://localhost:8080/api/v1/models
+Content-Type: application/json
+Authorization: Bearer {{$dotenv PASSWORD}}
+
+{
+    "id": "44cc64f0-43e4-4ac5-8d33-bc93f1a70e60",
+    "name": "o1",
+    "provider_id": "c9bb2474-072a-4ef0-a5fa-2a3792c653fe"
+}
