@@ -1,0 +1,46 @@
+<h1>Providers :</h1>
+<each-element update="providers" js="providers.value" element="provider">
+    <div class="border-2 flex flex-row">
+        <input
+            type="text"
+            data-update="providers"
+            data-dynamic-value="`${provider.name}`"
+            data-dynamic-id="`providerName-${provider.id}`"
+        />
+
+        <input
+            type="text"
+            data-update="providers"
+            data-dynamic-value="`${provider.url}`"
+            data-dynamic-id="`providerURL-${provider.id}`"
+            class="w-80"
+        />
+
+        <button
+            data-update="providers"
+            data-dynamic-js-onclick="updateProvider(provider.id, document.getElementById(`providerName-${provider.id}`).value, document.getElementById(`providerURL-${provider.id}`).value)"
+        >
+            Update
+        </button>
+    </div>
+</each-element>
+
+<h1>Models :</h1>
+
+<script>
+    var providers;
+    window.onload = async function () {
+        providers = new dynamicVariable("providers", []);
+        var response = await fetch("/api/v1/aiProviders", {
+            method: "GET",
+            headers: {
+                Authorization: `Bearer ${password}`,
+            },
+        });
+        providers.set(await response.json());
+    };
+
+    function updateProvider(id, name, url) {
+        console.log(id, name, url);
+    }
+</script>
