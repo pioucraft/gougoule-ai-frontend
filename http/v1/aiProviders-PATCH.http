@@ -1,0 +1,9 @@
+PATCH http://localhost:8080/api/v1/aiProviders
+Content-Type: application/json
+Authorization: Bearer {{$dotenv PASSWORD}}
+
+{
+    "id": "b7f2865e-758f-476e-9896-7026d07214a1",
+    "name": "OpenAI",
+    "url": "https://api.openai.com/v1/"
+}

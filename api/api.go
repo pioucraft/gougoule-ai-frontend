@@ -26,6 +26,9 @@ func API(w http.ResponseWriter, r *http.Request) {
 	} else if r.URL.Path == "/api/v1/retrieveConversations" || r.URL.Path == "/api/v1/retrieveConversations/" {
 		RetrieveConversationsHandler(w, r)
 		return
+	} else if r.URL.Path == "/api/v1/aiProviders" || r.URL.Path == "/api/v1/aiProviders/" {
+		AIProvidersHandler(w, r)
+		return
 	}
 }
 

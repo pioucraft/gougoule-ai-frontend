@@ -1,0 +1,7 @@
+DELETE http://localhost:8080/api/v1/aiProviders
+Content-Type: application/json
+Authorization: Bearer {{$dotenv PASSWORD}}
+
+{
+    "id": "89fc30ab-9795-4098-94fa-33c5c994c67c"
+}

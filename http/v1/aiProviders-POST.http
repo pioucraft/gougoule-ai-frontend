@@ -1,0 +1,9 @@
+POST http://localhost:8080/api/v1/aiProviders
+Content-Type: application/json
+Authorization: Bearer {{$dotenv PASSWORD}}
+
+{
+    "name": "Groq",
+    "url": "https://api.groq.com/openai/v1",
+    "api_key": "hey"
+}
