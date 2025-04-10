@@ -8,7 +8,7 @@
         class="flex flex-col gap-4"
     >
         <div class="border-2 flex flex-col p-3 gap-2">
-            <div class="flex gap-5">
+            <div class="flex gap-5 max-[100vh]:flex-col">
                 <input
                     type="text"
                     data-update="providers"
@@ -22,7 +22,7 @@
                     data-update="providers"
                     data-dynamic-value="`${provider.url}`"
                     data-dynamic-id="`providerURL-${provider.id}`"
-                    class="w-80 border-2 border-gray-400 outline-none"
+                    class="min-w-80 border-2 border-gray-400 outline-none"
                 />
             </div>
             <div class="flex gap-5">
