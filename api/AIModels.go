@@ -27,7 +27,7 @@ func AIModels(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("200 OK"))
 	} else if r.Method == http.MethodGet {
-		rows, err := Conn.Query(context.Background(), "SELECT name, provider_id, id FROM models")
+		rows, err := Conn.Query(context.Background(), "SELECT name, provider_id, id FROM models ORDER BY created_at")
 		if err != nil {
 			http.Error(w, "Error querying AI models", http.StatusInternalServerError)
 			return

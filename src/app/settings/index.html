@@ -1,36 +1,123 @@
-<h1>Providers :</h1>
-<each-element update="providers" js="providers.value" element="provider">
-    <div class="border-2 flex flex-row">
-        <input
-            type="text"
-            data-update="providers"
-            data-dynamic-value="`${provider.name}`"
-            data-dynamic-id="`providerName-${provider.id}`"
-        />
+<a href="/" class="text-xl underline">< Home</a>
+<div>
+    <h1 class="text-3xl mb-3">Providers :</h1>
+    <each-element
+        update="providers"
+        js="providers.value"
+        element="provider"
+        class="flex flex-col gap-4"
+    >
+        <div class="border-2 flex flex-col p-3 gap-2">
+            <div class="flex gap-5">
+                <input
+                    type="text"
+                    data-update="providers"
+                    data-dynamic-value="`${provider.name}`"
+                    data-dynamic-id="`providerName-${provider.id}`"
+                    class="border-2 border-gray-400 outline-none"
+                />
 
-        <input
-            type="text"
-            data-update="providers"
-            data-dynamic-value="`${provider.url}`"
-            data-dynamic-id="`providerURL-${provider.id}`"
-            class="w-80"
-        />
+                <input
+                    type="text"
+                    data-update="providers"
+                    data-dynamic-value="`${provider.url}`"
+                    data-dynamic-id="`providerURL-${provider.id}`"
+                    class="w-80 border-2 border-gray-400 outline-none"
+                />
+            </div>
+            <div class="flex gap-5">
+                <button
+                    data-update="providers"
+                    data-dynamic-js-onclick="updateProvider(provider.id, document.getElementById(`providerName-${provider.id}`).value, document.getElementById(`providerURL-${provider.id}`).value)"
+                    class="border-2 p-2 cursor-pointer"
+                >
+                    Update
+                </button>
 
-        <button
-            data-update="providers"
-            data-dynamic-js-onclick="updateProvider(provider.id, document.getElementById(`providerName-${provider.id}`).value, document.getElementById(`providerURL-${provider.id}`).value)"
-        >
-            Update
-        </button>
-    </div>
-</each-element>
+                <button
+                    data-update="providers"
+                    data-dynamic-js-onclick="deleteProvider(provider.id)"
+                    class="border-2 p-2 border-red-500 cursor-pointer"
+                >
+                    Delete
+                </button>
+            </div>
+            <div>
+                <h1 class="text-3xl mb-3">Models :</h1>
+                <each-element
+                    update="models providers"
+                    js="models.value"
+                    element="model"
+                    class="flex flex-col gap-4"
+                >
+                    <if-element
+                        update="providers models"
+                        js="model.provider_id == provider.id"
+                    >
+                        <div class="border-2 flex flex-col p-3 gap-2">
+                            <div class="flex gap-5">
+                                <input
+                                    type="text"
+                                    data-update="models providers"
+                                    data-dynamic-value="`${model.name}`"
+                                    data-dynamic-id="`modelName-${model.id}`"
+                                    class="border-2 border-gray-400 outline-none"
+                                />
+                            </div>
+                            <div class="flex gap-5">
+                                <button
+                                    data-update="models providers"
+                                    data-dynamic-js-onclick="updateModel(model.id, document.getElementById(`modelName-${model.id}`).value, provider.id)"
+                                    class="border-2 p-2 cursor-pointer"
+                                >
+                                    Update
+                                </button>
 
-<h1>Models :</h1>
+                                <button
+                                    data-update="models providers"
+                                    data-dynamic-js-onclick="deleteModel(model.id)"
+                                    class="border-2 p-2 border-red-500 cursor-pointer"
+                                >
+                                    Delete
+                                </button>
+                            </div>
+                        </div>
+                    </if-element>
+                </each-element>
+                <button
+                    data-update="models providers"
+                    data-dynamic-js-onclick="newModel(provider.id)"
+                    class="border-2 p-3 my-3 cursor-pointer"
+                >
+                    + new model
+                </button>
+            </div>
+        </div>
+    </each-element>
+    <button onclick="newProvider()" class="border-2 p-3 my-3 cursor-pointer">
+        + new provider
+    </button>
+</div>
+
+<style>
+    body {
+        background-color: black;
+        color: white;
+        padding: 16px;
+    }
+</style>
 
 <script>
     var providers;
     window.onload = async function () {
         providers = new dynamicVariable("providers", []);
+        fetchProviders();
+
+        models = new dynamicVariable("models", []);
+        fetchModels();
+    };
+
+    async function fetchProviders() {
         var response = await fetch("/api/v1/aiProviders", {
             method: "GET",
             headers: {
@@ -38,9 +125,110 @@
             },
         });
         providers.set(await response.json());
-    };
+    }
 
-    function updateProvider(id, name, url) {
-        console.log(id, name, url);
+    async function updateProvider(id, name, url) {
+        const response = await fetch("/api/v1/aiProviders", {
+            method: "PATCH",
+            headers: {
+                Authorization: `Bearer ${password}`,
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                id: id,
+                name: name,
+                url: url,
+            }),
+        });
+        if (!response.ok) alert("Error updating provider");
+    }
+
+    async function newProvider() {
+        const response = await fetch("/api/v1/aiProviders", {
+            method: "POST",
+            headers: {
+                Authorization: `Bearer ${password}`,
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                name: prompt("Enter provider name"),
+                url: prompt("Enter provider url"),
+                api_key: prompt("Enter provider api key"),
+            }),
+        });
+        if (!response.ok) alert("Error creating provider");
+        fetchProviders();
+    }
+
+    async function deleteProvider(id) {
+        const response = await fetch("/api/v1/aiProviders", {
+            method: "DELETE",
+            headers: {
+                Authorization: `Bearer ${password}`,
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                id: id,
+            }),
+        });
+        if (!response.ok) alert("Error deleting provider");
+        fetchProviders();
+    }
+
+    async function fetchModels() {
+        var response = await fetch("/api/v1/models", {
+            method: "GET",
+            headers: {
+                Authorization: `Bearer ${password}`,
+            },
+        });
+        models.set(await response.json());
+    }
+
+    async function updateModel(id, name, provider_id) {
+        const response = await fetch("/api/v1/models", {
+            method: "PATCH",
+            headers: {
+                Authorization: `Bearer ${password}`,
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                id: id,
+                name: name,
+                provider_id: provider_id,
+            }),
+        });
+        if (!response.ok) alert("Error updating model");
+    }
+
+    async function newModel(provider_id) {
+        const response = await fetch("/api/v1/models", {
+            method: "POST",
+            headers: {
+                Authorization: `Bearer ${password}`,
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                name: prompt("Enter model name"),
+                provider_id: provider_id,
+            }),
+        });
+        if (!response.ok) alert("Error creating model");
+        fetchModels();
+    }
+
+    async function deleteModel(id) {
+        const response = await fetch("/api/v1/models", {
+            method: "DELETE",
+            headers: {
+                Authorization: `Bearer ${password}`,
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                id: id,
+            }),
+        });
+        if (!response.ok) alert("Error deleting model");
+        fetchModels();
     }
 </script>

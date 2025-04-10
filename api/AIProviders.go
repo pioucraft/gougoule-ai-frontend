@@ -28,7 +28,7 @@ func AIProvidersHandler(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("200 OK"))
 	} else if r.Method == http.MethodGet {
-		rows, err := Conn.Query(context.Background(), "SELECT name, url, id FROM ai_providers")
+		rows, err := Conn.Query(context.Background(), "SELECT name, url, id FROM ai_providers ORDER BY created_at")
 		if err != nil {
 			http.Error(w, "Error querying AI providers", http.StatusInternalServerError)
 			return
