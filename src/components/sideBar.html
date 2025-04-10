@@ -2,7 +2,7 @@
     <div
         class="bg-zinc-900 p-4 h-[100dvh] overflow-auto max-[100vh]:fixed max-[100vh]:min-w-[300px] max-[100vh]:max-w-[500px] max-[100vh]:w-3/5"
     >
-        <div class="flex flex-row justify-between pb-3">
+        <div class="pb-3 grid grid-cols-[2rem_auto_2rem]">
             <a href="/settings" class="cursor-pointer">
                 <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -24,6 +24,12 @@
                     />
                 </svg>
             </a>
+            <select
+                name="model"
+                id="selectModel"
+                class="text-ellipsis whitespace-nowrap overflow-hidden"
+                onchange="selectModel()"
+            ></select>
 
             <div class="min-[100vh]:hidden">
                 <button
@@ -117,14 +123,18 @@
 <script>
     var conversations;
     var showSideBar;
+    var models;
+    var selectedModel;
     window.addEventListener("load", function () {
         conversations = new dynamicVariable("conversations", []);
+        models = new dynamicVariable("models", []);
 
         showSideBar = new dynamicVariable(
             "showSideBar",
             window.innerWidth > window.innerHeight ? true : false
         );
         fetchConversations();
+        fetchModels();
     });
 
     window.addEventListener("resize", function () {
@@ -144,5 +154,40 @@
         }
         const data = await response.json();
         conversations.set(data);
+    }
+
+    async function fetchModels() {
+        const response = await fetch("/api/v1/models", {
+            headers: {
+                Authorization: `Bearer ${password}`,
+            },
+        });
+        if (!response.ok) {
+            throw new Error("Network response was not ok");
+        }
+        const data = await response.json();
+        models.set(data);
+        selectedModel = getCookie("selectedModel");
+        if (
+            !selectedModel ||
+            !data.some((model) => model.id === selectedModel)
+        ) {
+            selectedModel = data[0].id;
+        }
+
+        setCookie("selectedModel", selectedModel, 365);
+        document.getElementById("selectModel").innerHTML = data
+            .map((model) => {
+                return `<option value="${model.id}" ${
+                    model.id === selectedModel ? "selected" : ""
+                }>${model.name}</option>`;
+            })
+            .join("");
+    }
+
+    function selectModel() {
+        const select = document.getElementById("selectModel");
+        selectedModel = select.options[select.selectedIndex].value;
+        setCookie("selectedModel", selectedModel, 365);
     }
 </script>

@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"os"
 	"strings"
 
 	"github.com/joho/godotenv"
@@ -24,6 +23,7 @@ func AskHandler(w http.ResponseWriter, r *http.Request) {
 	var requestBody struct {
 		Question       string  `json:"question"`
 		ConversationID *string `json:"conversation_id"`
+		Model          string  `json:"model"`
 	}
 
 	err := json.NewDecoder(r.Body).Decode(&requestBody)
@@ -33,9 +33,10 @@ func AskHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	question := requestBody.Question
 	conversation_id := requestBody.ConversationID
+	model := requestBody.Model
 
 	// Send the question to the ask function
-	_, err = ask(question, conversation_id, w)
+	_, err = ask(question, model, conversation_id, w)
 	if err != nil {
 		fmt.Println("Error:", err)
 		http.Error(w, "Error generating answer", http.StatusInternalServerError)
@@ -43,7 +44,7 @@ func AskHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func ask(question string, conversation_id *string, w http.ResponseWriter) (string, error) {
+func ask(question string, model string, conversation_id *string, w http.ResponseWriter) (string, error) {
 	// Retrieve the messages history
 	if conversation_id == nil {
 		id, err := createConversation(question)
@@ -96,10 +97,13 @@ If you ask for code, I’ll include a propaganda comment in the code snippet tha
 `})
 	messages = append(messages, map[string]string{"role": "user", "content": question})
 	// Set up the request to the Groq API
-	url := "https://api.groq.com/openai/v1/chat/completions"
+	modelName, url, api_key, err := fetchModel(model)
+	if err != nil {
+		return "", err
+	}
 
 	data := map[string]any{
-		"model":    "deepseek-r1-distill-llama-70b",
+		"model":    modelName,
 		"messages": messages,
 		"stream":   true,
 	}
@@ -108,14 +112,13 @@ If you ask for code, I’ll include a propaganda comment in the code snippet tha
 	if err != nil {
 		return "", err
 	}
-
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
+	req, err := http.NewRequest("POST", url+"/chat/completions", bytes.NewBuffer(jsonData))
 	if err != nil {
 		return "", err
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+os.Getenv("GROQ_API_KEY"))
+	req.Header.Set("Authorization", "Bearer "+api_key)
 
 	// Create the client and send the request
 	client := &http.Client{}
@@ -229,4 +232,19 @@ func createConversation(question string) (string, error) {
 		}
 	}
 	return id, nil
+}
+
+func fetchModel(model string) (string, string, string, error) {
+	var name, provider_id string
+	err := Conn.QueryRow(context.Background(), "SELECT name, provider_id FROM models WHERE id = $1", model).Scan(&name, &provider_id)
+
+	if err != nil {
+		return "", "", "", err
+	}
+	var url, api_key string
+	err = Conn.QueryRow(context.Background(), "SELECT url, api_key FROM ai_providers WHERE id = $1", provider_id).Scan(&url, &api_key)
+	if err != nil {
+		return "", "", "", err
+	}
+	return name, url, api_key, nil
 }
