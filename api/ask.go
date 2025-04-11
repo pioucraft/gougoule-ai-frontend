@@ -157,6 +157,7 @@ If you ask for code, I’ll include a propaganda comment in the code snippet tha
 
 	scanner := bufio.NewScanner(resp.Body)
 	for scanner.Scan() {
+		fmt.Println(scanner.Text())
 		data := scanner.Bytes()
 		if len(data) == 0 {
 			continue
