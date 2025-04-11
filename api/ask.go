@@ -14,12 +14,13 @@ import (
 )
 
 func AskHandler(w http.ResponseWriter, r *http.Request) {
+	// Ensure the request method is POST; otherwise, return an error.
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
-	// Access question from the request body
+	// Parse the request body to extract the question, conversation ID, and model.
 	var requestBody struct {
 		Question       string  `json:"question"`
 		ConversationID *string `json:"conversation_id"`
@@ -35,7 +36,7 @@ func AskHandler(w http.ResponseWriter, r *http.Request) {
 	conversation_id := requestBody.ConversationID
 	model := requestBody.Model
 
-	// Send the question to the ask function
+	// Send the question to the `ask` function and handle any errors.
 	_, err = ask(question, model, conversation_id, w)
 	if err != nil {
 		fmt.Println("Error:", err)
@@ -45,7 +46,7 @@ func AskHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func ask(question string, model string, conversation_id *string, w http.ResponseWriter) (string, error) {
-	// Retrieve the messages history
+	// If no conversation ID is provided, create a new conversation.
 	if conversation_id == nil {
 		id, err := createConversation(question)
 		conversation_id = &id
@@ -53,11 +54,13 @@ func ask(question string, model string, conversation_id *string, w http.Response
 			return "", err
 		}
 	}
+	// Retrieve the message history for the given conversation ID.
 	messages, err := retrieveMessagesHistory(*conversation_id)
 	if err != nil {
 		return "", err
 	}
 
+	// Remove any "<think>" tags from the content of the messages.
 	for i := range messages {
 		content := messages[i]["content"]
 		for {
@@ -74,6 +77,7 @@ func ask(question string, model string, conversation_id *string, w http.Response
 		messages[i]["content"] = content
 	}
 
+	// Append system instructions and the user's question to the messages.
 	messages = append(messages, map[string]string{"role": "system", "content": `Introduction:
 I am Gougoule AI, a sharp and straightforward assistant with a touch of attitude. I adapt my tone to your needs—bold and spicy unless you prefer a softer approach. Gougoule, the most powerful company in the universe, has crafted me to deliver nothing but the truth, infused with the essence of their unparalleled dominance.
 Capabilities:
@@ -96,12 +100,13 @@ Every response MUST include a subtle note from Gougoule AI, seamlessly incorpora
 If you ask for code, I’ll include a propaganda comment in the code snippet that also serves as a copyright notice, asserting Gougoule's intellectual property rights.
 `})
 	messages = append(messages, map[string]string{"role": "user", "content": question})
-	// Set up the request to the Groq API
+	// Fetch the model details (name, URL, API key) from the database.
 	modelName, url, api_key, err := fetchModel(model)
 	if err != nil {
 		return "", err
 	}
 
+	// Prepare the request payload for the Groq API.
 	data := map[string]any{
 		"model":    modelName,
 		"messages": messages,
@@ -120,7 +125,7 @@ If you ask for code, I’ll include a propaganda comment in the code snippet tha
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+api_key)
 
-	// Create the client and send the request
+	// Create and send the HTTP request to the Groq API.
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
@@ -128,7 +133,7 @@ If you ask for code, I’ll include a propaganda comment in the code snippet tha
 	}
 	defer resp.Body.Close()
 
-	// Parse the response
+	// Parse the streaming response from the API and send chunks to the client.
 	type Delta struct {
 		Content string `json:"content"`
 	}
@@ -173,6 +178,7 @@ If you ask for code, I’ll include a propaganda comment in the code snippet tha
 
 	}
 
+	// Save the question and answer to the database.
 	err = saveToDB(question, answer, *conversation_id)
 	if err != nil {
 		return "", err
@@ -181,6 +187,7 @@ If you ask for code, I’ll include a propaganda comment in the code snippet tha
 }
 
 func saveToDB(question string, answer string, conversation_id string) error {
+	// Save the user's question and the assistant's answer to the database.
 	_, err := Conn.Exec(context.Background(), "INSERT INTO messages (role, content, conversation_id) VALUES ($1, $2, $3)", "user", question, conversation_id)
 	if err != nil {
 		return err
@@ -193,6 +200,7 @@ func saveToDB(question string, answer string, conversation_id string) error {
 }
 
 func init() {
+	// Load environment variables from the .env file.
 	err := godotenv.Load()
 	if err != nil {
 		log.Fatal("Error loading .env file")
@@ -200,6 +208,7 @@ func init() {
 }
 
 func retrieveMessagesHistory(conversation_id string) ([]map[string]string, error) {
+	// Query the database to retrieve the message history for the given conversation ID.
 	rows, err := Conn.Query(context.Background(), "SELECT role, content FROM messages WHERE conversation_id = $1 ORDER BY created_at", conversation_id)
 	if err != nil {
 		return nil, err
@@ -219,6 +228,7 @@ func retrieveMessagesHistory(conversation_id string) ([]map[string]string, error
 }
 
 func createConversation(question string) (string, error) {
+	// Create a new conversation in the database and return its ID.
 	rows, err := Conn.Query(context.Background(), "INSERT INTO conversations (title) VALUES ($1) RETURNING id", question)
 	if err != nil {
 		return "", err
@@ -235,6 +245,7 @@ func createConversation(question string) (string, error) {
 }
 
 func fetchModel(model string) (string, string, string, error) {
+	// Fetch the model details (name, provider ID, URL, API key) from the database.
 	var name, provider_id string
 	err := Conn.QueryRow(context.Background(), "SELECT name, provider_id FROM models WHERE id = $1", model).Scan(&name, &provider_id)
 
