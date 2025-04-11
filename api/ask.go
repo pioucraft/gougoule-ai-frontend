@@ -228,9 +228,15 @@ If you ask for code, I’ll include a propaganda comment in the code snippet tha
 		if len(respBody.Choices) == 0 {
 			continue
 		}
+		if len(respBody.Choices[0].Delta.Tool_calls) == 0 {
+			continue
+		}
 		if respBody.Choices[0].Delta.Tool_calls != nil {
 			answer += respBody.Choices[0].Delta.Tool_calls[0].Function.Arguments
 			fmt.Fprintf(w, "%s", respBody.Choices[0].Delta.Tool_calls[0].Function.Arguments)
+			fmt.Println("Tool call:", respBody.Choices[0].Delta)
+			fmt.Println(answer)
+			fmt.Println("----------")
 
 		} else if respBody.Choices[0].Delta.Content != nil {
 			if contentStr, ok := respBody.Choices[0].Delta.Content.(string); ok {
