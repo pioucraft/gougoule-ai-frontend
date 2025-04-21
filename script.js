@@ -256,19 +256,20 @@ class eachElement extends HTMLElement {
 
 customElements.define("each-element", eachElement);
 
-const typeElements = document.querySelectorAll(
-    "if-element, elif-element, else-element"
-);
-typeElements.forEach((element) => {
-    element.hidden = true;
-});
-
-const eachElements = document.querySelectorAll("each-element");
-eachElements.forEach((element) => {
-    let span = document.createElement("span");
-    while (element.firstChild) {
-        span.appendChild(element.firstChild);
-    }
-    span.hidden = true;
-    element.appendChild(span);
+window.addEventListener("load", () => {
+    const typeElements = document.querySelectorAll(
+        "if-element, elif-element, else-element"
+    );
+    typeElements.forEach((element) => {
+        element.hidden = true;
+    });
+    const eachElements = document.querySelectorAll("each-element");
+    eachElements.forEach((element) => {
+        let span = document.createElement("span");
+        while (element.firstChild) {
+            span.appendChild(element.firstChild);
+        }
+        span.hidden = true;
+        element.appendChild(span);
+    });
 });

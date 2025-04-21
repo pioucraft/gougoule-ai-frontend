@@ -125,8 +125,8 @@ func returnHTML(w http.ResponseWriter, path string) {
 		htmlFile = []byte(strings.Replace(string(htmlFile), "{@component}"+componentPath+"{/component}", string(component), 1))
 	}
 
-	html := "<link rel='stylesheet' href='/default.css'></link>" +
-		strings.ReplaceAll(string(htmlAppFile), "{@app}", string(htmlFile)) + "<script src='/script.js'></script>"
+	html := "<script src='/script.js'></script>" + "<link rel='stylesheet' href='/default.css'></link>" +
+		strings.ReplaceAll(string(htmlAppFile), "{@app}", string(htmlFile))
 	w.Header().Set("Content-Type", "text/html")
 	w.Write([]byte(html))
 }

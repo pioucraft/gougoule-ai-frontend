@@ -121,20 +121,19 @@
     </div>
 </else-element>
 <script>
-    var conversations;
-    var showSideBar;
-    var models;
+    var conversations = new dynamicVariable("conversations", []);
+    var models = new dynamicVariable("models", []);
     var selectedModel;
-    window.addEventListener("load", function () {
-        conversations = new dynamicVariable("conversations", []);
-        models = new dynamicVariable("models", []);
+    var showSideBar;
 
+    fetchConversations();
+    fetchModels();
+
+    window.addEventListener("load", function () {
         showSideBar = new dynamicVariable(
             "showSideBar",
             window.innerWidth > window.innerHeight ? true : false
         );
-        fetchConversations();
-        fetchModels();
     });
 
     window.addEventListener("resize", function () {
@@ -153,6 +152,7 @@
             throw new Error("Network response was not ok");
         }
         const data = await response.json();
+
         conversations.set(data);
     }
 

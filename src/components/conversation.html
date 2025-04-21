@@ -289,8 +289,5 @@
         const container = document.querySelector(".flex.justify-center");
         container.scrollTop = container.scrollHeight;
     }
-    var messagesHistory;
-    window.addEventListener("load", function () {
-        messagesHistory = new dynamicVariable("messagesHistory", []);
-    });
+    const messagesHistory = new dynamicVariable("messagesHistory", []);
 </script>
