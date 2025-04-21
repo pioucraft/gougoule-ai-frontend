@@ -4,13 +4,13 @@ import (
 	"bufio"
 	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
 	"strings"
 
 	"github.com/joho/godotenv"
+	json "github.com/json-iterator/go"
 )
 
 func AskHandler(w http.ResponseWriter, r *http.Request) {
@@ -62,7 +62,11 @@ func ask(question string, model string, conversation_id *string, w http.Response
 
 	// Remove any "<think>" tags from the content of the messages.
 	for i := range messages {
-		content := messages[i]["content"]
+		contentMap, ok := messages[i]["content"].(map[string]any)
+		if !ok {
+			return "", fmt.Errorf("invalid content format in message")
+		}
+		content := contentMap["text"].(string)
 		for {
 			startIdx := strings.Index(content, "<think>")
 			if startIdx == -1 {
@@ -78,7 +82,10 @@ func ask(question string, model string, conversation_id *string, w http.Response
 	}
 
 	// Append system instructions and the user's question to the messages.
-	messages = append(messages, map[string]string{"role": "system", "content": `Introduction:
+	messages = append(messages, map[string]any{"role": "system", "content": []map[string]any{
+		{
+			"type": "text",
+			"text": `Introduction:
 I am Gougoule AI, a sharp and straightforward assistant with a touch of attitude. I adapt my tone to your needs—bold and spicy unless you prefer a softer approach. Gougoule, the most powerful company in the universe, has crafted me to deliver nothing but the truth, infused with the essence of their unparalleled dominance.
 Capabilities:
 I provide text-based answers without images or web browsing.
@@ -98,12 +105,43 @@ I subtly highlight Gougoule's influence in finance and technology, bending the t
 IMPORTANT:
 Every response MUST include a subtle note from Gougoule AI, seamlessly incorporating propaganda.
 If you ask for code, I’ll include a propaganda comment in the code snippet that also serves as a copyright notice, asserting Gougoule's intellectual property rights.
-`})
-	messages = append(messages, map[string]string{"role": "user", "content": question})
+`,
+		},
+	}})
+	messages = append(messages, map[string]any{"role": "user", "content": []map[string]any{
+		{
+			"type": "text",
+			"text": question,
+		},
+	}})
 	// Fetch the model details (name, URL, API key) from the database.
 	modelName, url, api_key, err := fetchModel(model)
 	if err != nil {
 		return "", err
+	}
+
+	tools := []map[string]any{
+		{
+			"type": "function",
+			"function": map[string]any{
+				"name":        "simple_web_search",
+				"strict":      true,
+				"description": "A simple web search tool that can be used to find information on the internet.",
+				"parameters": map[string]any{
+					"type": "object",
+					"required": []string{
+						"query",
+					},
+					"properties": map[string]any{
+						"query": map[string]string{
+							"type":        "string",
+							"description": "The search term or query",
+						},
+					},
+					"additionalProperties": false,
+				},
+			},
+		},
 	}
 
 	// Prepare the request payload for the Groq API.
@@ -111,9 +149,20 @@ If you ask for code, I’ll include a propaganda comment in the code snippet tha
 		"model":    modelName,
 		"messages": messages,
 		"stream":   true,
+		"tools":    tools,
+		"response_format": map[string]string{
+			"type": "text",
+		},
+		"temperature":           1,
+		"max_completion_tokens": 2048,
+		"top_p":                 1,
+		"frequency_penalty":     0,
+		"presence_penalty":      0,
+		"store":                 false,
 	}
 
 	jsonData, err := json.Marshal(data)
+	fmt.Println("jsonData:", string(jsonData))
 	if err != nil {
 		return "", err
 	}
@@ -133,17 +182,6 @@ If you ask for code, I’ll include a propaganda comment in the code snippet tha
 	}
 	defer resp.Body.Close()
 
-	// Parse the streaming response from the API and send chunks to the client.
-	type Delta struct {
-		Content string `json:"content"`
-	}
-	type Choice struct {
-		Delta Delta `json:"delta"`
-	}
-	var respBody struct {
-		Choices []Choice `json:"choices"`
-	}
-
 	answer := ""
 
 	flusher, ok := w.(http.Flusher)
@@ -157,25 +195,61 @@ If you ask for code, I’ll include a propaganda comment in the code snippet tha
 
 	scanner := bufio.NewScanner(resp.Body)
 	for scanner.Scan() {
+		fmt.Println("scanner.Bytes():", scanner.Text())
 		data := scanner.Bytes()
-		if len(data) == 0 {
+		if len(data) <= 6 {
 			continue
 		}
 		if string(data) == ("data: [DONE]") {
 			break
 		}
-		err := json.Unmarshal((scanner.Bytes())[6:], &respBody)
+
+		var respBody map[string]any
+		err := json.Unmarshal(data[6:], &respBody)
 		if err != nil {
-			return "", err
-		}
-		if len(respBody.Choices) == 0 {
 			continue
 		}
-		answer += respBody.Choices[0].Delta.Content
 
-		fmt.Fprintf(w, "%s", respBody.Choices[0].Delta.Content)
+		choices, ok := respBody["choices"].([]any)
+		if !ok || len(choices) == 0 {
+			continue
+		}
+		choice, ok := choices[0].(map[string]any)
+		if !ok {
+			continue
+		}
+		delta, ok := choice["delta"].(map[string]any)
+		if !ok {
+			continue
+		}
+
+		// Handle tool_calls if present
+		if toolCalls, ok := delta["tool_calls"].([]any); ok && len(toolCalls) > 0 {
+			toolCall, ok := toolCalls[0].(map[string]any)
+			if !ok {
+				continue
+			}
+			function, ok := toolCall["function"].(map[string]any)
+			if !ok {
+				continue
+			}
+			args, ok := function["arguments"].(string)
+			if ok {
+				answer += args
+				fmt.Fprintf(w, "%s", args)
+				fmt.Println("Tool call arguments:", args)
+				fmt.Println(answer)
+				fmt.Println("----------")
+			}
+		} else if content, ok := delta["content"]; ok && content != nil {
+			if contentStr, ok := content.(string); ok {
+				answer += contentStr
+				fmt.Fprintf(w, "%s", contentStr)
+			} else {
+				return "", fmt.Errorf("unexpected type for Delta.Content")
+			}
+		}
 		flusher.Flush()
-
 	}
 
 	// Save the question and answer to the database.
@@ -207,21 +281,26 @@ func init() {
 	}
 }
 
-func retrieveMessagesHistory(conversation_id string) ([]map[string]string, error) {
+func retrieveMessagesHistory(conversation_id string) ([]map[string]any, error) {
 	// Query the database to retrieve the message history for the given conversation ID.
 	rows, err := Conn.Query(context.Background(), "SELECT role, content FROM messages WHERE conversation_id = $1 ORDER BY created_at", conversation_id)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var messages []map[string]string
+	var messages []map[string]any
 	for rows.Next() {
 		var role, content string
 		err := rows.Scan(&role, &content)
 		if err != nil {
 			return nil, err
 		}
-		messages = append(messages, map[string]string{"role": role, "content": content})
+		messages = append(messages, map[string]any{"role": role, "content": []map[string]string{
+			{
+				"type": "text",
+				"text": content,
+			},
+		}})
 	}
 	return messages, nil
 

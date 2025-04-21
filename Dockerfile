@@ -1,5 +1,5 @@
 # Use the official Alpine-based Golang image to create a build artifact
-FROM golang:1.24.1-alpine AS build
+FROM golang:1.24.2-alpine AS build
 
 # Set the Current Working Directory inside the container
 WORKDIR /app
