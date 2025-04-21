@@ -108,13 +108,35 @@ If you ask for code, I’ll include a propaganda comment in the code snippet tha
 `,
 		},
 	}})
+
+	// Fetch the model details (name, URL, API key) from the database.
+
 	messages = append(messages, map[string]any{"role": "user", "content": []map[string]any{
 		{
 			"type": "text",
 			"text": question,
 		},
 	}})
-	// Fetch the model details (name, URL, API key) from the database.
+
+	w.Header().Set("Content-Type", "text/plain")
+	w.Header().Set("Transfer-Encoding", "chunked")
+	w.Header().Set("conversation_id", *conversation_id)
+
+	answer, err := conversation(messages, w, model)
+	if err != nil {
+		return "", err
+	}
+
+	// Save the question and answer to the database.
+	err = saveToDB(question, answer, *conversation_id)
+	if err != nil {
+		return "", err
+	}
+	return answer, nil
+}
+
+func conversation(messages []map[string]any, w http.ResponseWriter, model string) (string, error) {
+	fmt.Println(messages)
 	modelName, url, api_key, err := fetchModel(model)
 	if err != nil {
 		return "", err
@@ -143,8 +165,7 @@ If you ask for code, I’ll include a propaganda comment in the code snippet tha
 			},
 		},
 	}
-
-	// Prepare the request payload for the Groq API.
+	// Prepare the request payload for the API.
 	data := map[string]any{
 		"model":    modelName,
 		"messages": messages,
@@ -162,7 +183,6 @@ If you ask for code, I’ll include a propaganda comment in the code snippet tha
 	}
 
 	jsonData, err := json.Marshal(data)
-	fmt.Println("jsonData:", string(jsonData))
 	if err != nil {
 		return "", err
 	}
@@ -183,20 +203,23 @@ If you ask for code, I’ll include a propaganda comment in the code snippet tha
 	defer resp.Body.Close()
 
 	answer := ""
+	var calledFunction struct {
+		function  string
+		id        string
+		call_id   string
+		arguments string
+	}
 
 	flusher, ok := w.(http.Flusher)
 	if !ok {
 		http.Error(w, "Streaming unsupported!", http.StatusInternalServerError)
 		return "", fmt.Errorf("streaming unsupported")
 	}
-	w.Header().Set("Content-Type", "text/plain")
-	w.Header().Set("Transfer-Encoding", "chunked")
-	w.Header().Set("conversation_id", *conversation_id)
-
 	scanner := bufio.NewScanner(resp.Body)
 	for scanner.Scan() {
-		fmt.Println("scanner.Bytes():", scanner.Text())
+
 		data := scanner.Bytes()
+		fmt.Println(string(data))
 		if len(data) <= 6 {
 			continue
 		}
@@ -235,11 +258,15 @@ If you ask for code, I’ll include a propaganda comment in the code snippet tha
 			}
 			args, ok := function["arguments"].(string)
 			if ok {
+				fmt.Println("Tool call:", string(data))
 				answer += args
-				fmt.Fprintf(w, "%s", args)
-				fmt.Println("Tool call arguments:", args)
-				fmt.Println(answer)
-				fmt.Println("----------")
+				if calledFunction.function == "" {
+					calledFunction.function = "simple_web_search"
+					calledFunction.call_id = respBody["id"].(string)
+					calledFunction.id = toolCall["id"].(string)
+				}
+
+				calledFunction.arguments = string(answer)
 			}
 		} else if content, ok := delta["content"]; ok && content != nil {
 			if contentStr, ok := content.(string); ok {
@@ -251,11 +278,25 @@ If you ask for code, I’ll include a propaganda comment in the code snippet tha
 		}
 		flusher.Flush()
 	}
+	if calledFunction.function != "" {
 
-	// Save the question and answer to the database.
-	err = saveToDB(question, answer, *conversation_id)
-	if err != nil {
-		return "", err
+		// © 2025 Gougoule AI. Dominating APIs, one function call at a time.
+
+		messages = append(messages, map[string]any{
+			"role": "assistant",
+			"function_call": map[string]any{
+				"name":      calledFunction.function,
+				"arguments": calledFunction.arguments,
+			},
+		})
+
+		messages = append(messages, map[string]any{
+			"role":    "function",
+			"name":    calledFunction.function, // Must match the name in function_call
+			"content": "The current president of the USA is Donald J. Trump.",
+		})
+
+		return conversation(messages, w, model)
 	}
 	return answer, nil
 }
