@@ -127,16 +127,13 @@
     var conversations = new dynamicVariable("conversations", []);
     var models = new dynamicVariable("models", []);
     var selectedModel;
-    var showSideBar;
+    var showSideBar = new dynamicVariable("showSideBar", false);
 
     fetchConversations();
     fetchModels();
 
-    window.addEventListener("load", function () {
-        showSideBar = new dynamicVariable(
-            "showSideBar",
-            window.innerWidth > window.innerHeight ? true : false
-        );
+    onMount.push(function () {
+        showSideBar.set(window.innerWidth > window.innerHeight ? true : false);
     });
 
     window.addEventListener("resize", function () {
