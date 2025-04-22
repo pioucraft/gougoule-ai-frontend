@@ -1,0 +1,113 @@
+<div class="grid grid-cols-[auto_5rem] gap-4 mt-10">
+    <textarea
+        name=""
+        id="message"
+        placeholder="Type your message here"
+        class="outline p-2"
+        rows="1"
+        oninput="adjustTextareaHeight()"
+    ></textarea>
+    <button onclick="ask()" class="border p-2 cursor-pointer">Send</button>
+</div>
+
+<script>
+    async function ask() {
+        let message = document.getElementById("message").value;
+        document.getElementById("message").value = "";
+        adjustTextareaHeight();
+        if (!message) return;
+
+        let newMessagesHistory = [
+            ...messagesHistory.value,
+            {
+                role: "user",
+                content: message,
+            },
+        ];
+        messagesHistory.set(newMessagesHistory);
+
+        const answer = await fetch("/api/v1/ask", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${password}`,
+            },
+            body: JSON.stringify({
+                question: message,
+                conversation_id: conversation_id,
+                model: selectedModel,
+            }),
+        });
+
+        conversation_id = answer.headers.get("Conversation_id");
+        if (!conversations.value.some((x) => x.id == conversation_id)) {
+            conversations.set([
+                {
+                    id: conversation_id,
+                    title: message,
+                },
+                ...conversations.value,
+            ]);
+            history.pushState(null, "", `/conversation/${conversation_id}`);
+        }
+        newMessagesHistory.push({
+            role: "assistant",
+            content: "",
+        });
+        scrollToBottom();
+
+        const reader = answer.body.getReader();
+        const decoder = new TextDecoder();
+        function readStream() {
+            reader.read().then(function processText({ done, value }) {
+                scrollToBottom();
+                if (done) {
+                    return;
+                }
+
+                // Decode the chunk and replace the content of the last message
+                const text = decoder.decode(value);
+                newMessagesHistory[newMessagesHistory.length - 1].content +=
+                    text;
+
+                messagesHistory.set(
+                    newMessagesHistory.map((x, i) => {
+                        if (i == newMessagesHistory.length - 1) {
+                            return formatMessageObject(x);
+                            x;
+                        }
+                        return x;
+                    })
+                );
+
+                readStream();
+            });
+        }
+        readStream();
+        messagesHistory.set(newMessagesHistory);
+    }
+
+    function adjustTextareaHeight() {
+        const textarea = document.getElementById("message");
+        textarea.style.height = "auto"; // Reset height to calculate the new height
+        const maxHeight =
+            8.3 * parseFloat(getComputedStyle(textarea).lineHeight); // Limit to 20 rows
+        textarea.style.height = `${Math.min(
+            textarea.scrollHeight,
+            maxHeight
+        )}px`;
+        textarea.style.overflowY =
+            textarea.scrollHeight > maxHeight ? "scroll" : "hidden";
+    }
+
+    window.addEventListener("keydown", function (event) {
+        if (
+            event.target.id == "message" &&
+            event.key === "Enter" &&
+            !event.shiftKey
+        ) {
+            event.preventDefault();
+            ask();
+        }
+    });
+</script>

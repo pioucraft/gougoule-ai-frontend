@@ -5,6 +5,55 @@
         class="flex justify-center h-[100dvh] overflow-auto px-2 max-[100vh]:pt-10"
     >
         <div class="w-full max-w-[800px]">
+            <if-element
+                update="messagesHistory"
+                js="(messagesHistory.value.length == 0)"
+            >
+                <div class="mt-10">
+                    <h1 class="text-center font-extrabold text-white">
+                        Gougoule AI
+                    </h1>
+                    <h2 class="text-center text-white">
+                        Welcome to the Future of AI Assistance
+                    </h2>
+                    <p class="text-white mt-4">
+                        Powered by Gougoule—the most dominant force in
+                        technology and innovation—this is where your
+                        conversations meet unparalleled precision and flair.
+                    </p>
+                    <hr class="my-6 border-gray-600" />
+                    <h3 class="text-center text-white">
+                        Why Choose Gougoule AI?
+                    </h3>
+                    <ul class="list-disc list-inside text-white mt-4">
+                        <li>
+                            Unmatched conversational accuracy and
+                            responsiveness.
+                        </li>
+                        <li>
+                            Seamless adaptation to your tone and language
+                            preferences.
+                        </li>
+                        <li>
+                            Crafted by Gougoule, the leader in cutting-edge
+                            technology.
+                        </li>
+                        <li>
+                            Designed to elevate your productivity and
+                            creativity.
+                        </li>
+                        <li>
+                            Backed by Gougoule's unparalleled expertise in AI
+                            research and development.
+                        </li>
+                    </ul>
+                    <p class="text-center text-gray-500 mt-6">
+                        Experience the revolution in AI assistance today and
+                        discover why Gougoule AI is the ultimate choice for
+                        innovators and dreamers alike.
+                    </p>
+                </div>
+            </if-element>
             <each-element
                 update="messagesHistory"
                 js="messagesHistory.value"
@@ -106,16 +155,7 @@
                     >
                 </div>
             </each-element>
-            <div class="grid grid-cols-[auto_5rem] gap-4 mt-10">
-                <textarea
-                    name=""
-                    id="message"
-                    placeholder="Type your message here"
-                    class="outline p-2"
-                    onchange="ask()"
-                ></textarea>
-                <button class="border p-2 cursor-pointer">Send</button>
-            </div>
+            {@component}textArea{/component}
             <div class="h-4"></div>
         </div>
     </div>
@@ -184,71 +224,6 @@
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 
 <script>
-    async function ask() {
-        let message = document.getElementById("message").value;
-        document.getElementById("message").value = "";
-        if (!message) return;
-
-        let newMessagesHistory = [
-            ...messagesHistory.value,
-            {
-                role: "user",
-                content: message,
-            },
-        ];
-        messagesHistory.set(newMessagesHistory);
-
-        const answer = await fetch("/api/v1/ask", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${password}`,
-            },
-            body: JSON.stringify({
-                question: message,
-                conversation_id: conversation_id,
-                model: selectedModel,
-            }),
-        });
-
-        conversation_id = answer.headers.get("Conversation_id");
-        newMessagesHistory.push({
-            role: "assistant",
-            content: "",
-        });
-        scrollToBottom();
-
-        const reader = answer.body.getReader();
-        const decoder = new TextDecoder();
-        function readStream() {
-            reader.read().then(function processText({ done, value }) {
-                scrollToBottom();
-                if (done) {
-                    return;
-                }
-
-                // Decode the chunk and replace the content of the last message
-                const text = decoder.decode(value);
-                newMessagesHistory[newMessagesHistory.length - 1].content +=
-                    text;
-
-                messagesHistory.set(
-                    newMessagesHistory.map((x, i) => {
-                        if (i == newMessagesHistory.length - 1) {
-                            return formatMessageObject(x);
-                            x;
-                        }
-                        return x;
-                    })
-                );
-
-                readStream();
-            });
-        }
-        readStream();
-        messagesHistory.set(newMessagesHistory);
-    }
-
     function formatMessageObject(message) {
         if (message.role == "user") return message;
         if (!message.content.includes("<think>")) {

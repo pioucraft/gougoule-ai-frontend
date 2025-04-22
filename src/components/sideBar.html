@@ -80,7 +80,10 @@
             element="conversation"
             class="flex flex-col gap-3"
         >
-            <div class="hover:bg-zinc-800 rounded-xl cursor-pointer block">
+            <div
+                data-update="conversations showSideBar"
+                data-dynamic-class="`hover:bg-zinc-800 rounded-xl cursor-pointer block ${conversation.id == conversation_id ? 'bg-zinc-700' : ''}`"
+            >
                 <a
                     class="block p-2 text-ellipsis whitespace-nowrap overflow-hidden"
                     data-update="conversations showSideBar"
