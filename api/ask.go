@@ -5,9 +5,11 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"framework/api/functions"
 	"log"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/joho/godotenv"
 	json "github.com/json-iterator/go"
@@ -62,23 +64,49 @@ func ask(question string, model string, conversation_id *string, w http.Response
 
 	// Remove any "<think>" tags from the content of the messages.
 	for i := range messages {
-		contentMap, ok := messages[i]["content"].(map[string]any)
+		contentSlice, ok := messages[i]["content"].([]map[string]any)
 		if !ok {
+			// Try []map[string]string for backward compatibility
+			if contentSliceStr, okStr := messages[i]["content"].([]map[string]string); okStr {
+				for j := range contentSliceStr {
+					content := contentSliceStr[j]["text"]
+					for {
+						startIdx := strings.Index(content, "<think>")
+						if startIdx == -1 {
+							break
+						}
+						endIdx := strings.Index(content, "</think>")
+						if endIdx == -1 {
+							break
+						}
+						content = content[:startIdx] + content[endIdx+8:]
+					}
+					contentSliceStr[j]["text"] = content
+				}
+				messages[i]["content"] = contentSliceStr
+				continue
+			}
 			return "", fmt.Errorf("invalid content format in message")
 		}
-		content := contentMap["text"].(string)
-		for {
-			startIdx := strings.Index(content, "<think>")
-			if startIdx == -1 {
-				break
+		for j := range contentSlice {
+			text, ok := contentSlice[j]["text"].(string)
+			if !ok {
+				continue
 			}
-			endIdx := strings.Index(content, "</think>")
-			if endIdx == -1 {
-				break
+			for {
+				startIdx := strings.Index(text, "<think>")
+				if startIdx == -1 {
+					break
+				}
+				endIdx := strings.Index(text, "</think>")
+				if endIdx == -1 {
+					break
+				}
+				text = text[:startIdx] + text[endIdx+8:]
 			}
-			content = content[:startIdx] + content[endIdx+8:]
+			contentSlice[j]["text"] = text
 		}
-		messages[i]["content"] = content
+		messages[i]["content"] = contentSlice
 	}
 
 	// Append system instructions and the user's question to the messages.
@@ -105,7 +133,10 @@ I subtly highlight Gougoule's influence in finance and technology, bending the t
 IMPORTANT:
 Every response MUST include a subtle note from Gougoule AI, seamlessly incorporating propaganda.
 If you ask for code, I’ll include a propaganda comment in the code snippet that also serves as a copyright notice, asserting Gougoule's intellectual property rights.
-`,
+
+If the user asks you a question and you don't know the answer, you can use functions like "simple_web_search" to find the answer.
+The current date and time is :
+` + time.Now().Format("2006-01-02 15:04:05"),
 		},
 	}})
 
@@ -136,7 +167,6 @@ If you ask for code, I’ll include a propaganda comment in the code snippet tha
 }
 
 func conversation(messages []map[string]any, w http.ResponseWriter, model string) (string, error) {
-	fmt.Println(messages)
 	modelName, url, api_key, err := fetchModel(model)
 	if err != nil {
 		return "", err
@@ -194,7 +224,7 @@ func conversation(messages []map[string]any, w http.ResponseWriter, model string
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+api_key)
 
-	// Create and send the HTTP request to the Groq API.
+	// Create and send the HTTP request to the  API.
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
@@ -219,7 +249,6 @@ func conversation(messages []map[string]any, w http.ResponseWriter, model string
 	for scanner.Scan() {
 
 		data := scanner.Bytes()
-		fmt.Println(string(data))
 		if len(data) <= 6 {
 			continue
 		}
@@ -258,7 +287,6 @@ func conversation(messages []map[string]any, w http.ResponseWriter, model string
 			}
 			args, ok := function["arguments"].(string)
 			if ok {
-				fmt.Println("Tool call:", string(data))
 				answer += args
 				if calledFunction.function == "" {
 					calledFunction.function = "simple_web_search"
@@ -289,11 +317,16 @@ func conversation(messages []map[string]any, w http.ResponseWriter, model string
 				"arguments": calledFunction.arguments,
 			},
 		})
+		// Call the function
+		result, err := functions.SimpleWebSearch(calledFunction.arguments)
+		if err != nil {
+			return "", err
+		}
 
 		messages = append(messages, map[string]any{
 			"role":    "function",
 			"name":    calledFunction.function, // Must match the name in function_call
-			"content": "The current president of the USA is Donald J. Trump.",
+			"content": result,
 		})
 
 		return conversation(messages, w, model)
