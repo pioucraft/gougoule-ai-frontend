@@ -60,7 +60,6 @@
         const decoder = new TextDecoder();
         function readStream() {
             reader.read().then(function processText({ done, value }) {
-                scrollToBottom();
                 if (done) {
                     return;
                 }
@@ -79,6 +78,7 @@
                         return x;
                     })
                 );
+
 
                 readStream();
             });
@@ -108,6 +108,10 @@
         ) {
             event.preventDefault();
             ask();
+        } else if(event.key === "i" && event.ctrlKey) {
+            document.getElementById("message").focus()
+        } else if(event.key === "a" && event.ctrlKey) {
+            document.location.href = "/"
         }
     });
 </script>
