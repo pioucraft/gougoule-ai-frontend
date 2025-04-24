@@ -1,0 +1,76 @@
+<div>
+    <input id="searchBar" placeholder="Search for conversations..." />
+    <button class="cursor-pointer" onclick="search()">Search</button>
+</div>
+
+<each-element
+    update="results"
+    js="results.value"
+    element="result"
+    class="flex flex-col gap-3">
+        <div
+            class="hover:bg-zinc-800 rounded-xl cursor-pointer mb-4 block">
+            <a
+                class="block p-2 text-ellipsis overflow-hidden"
+                data-update="results"
+                data-dynamic-href="`/conversation/${result.conversation_id}`">
+                <js-element
+                    js="result.content"
+                    update="results">Title</js-element>
+                <div class="text-gray-400">
+                    <each-element
+                        update="results"
+                        js="result.highlights"
+                        element="highlight">
+                        <span class="bg-gray-700 rounded-md p-1 mr-1">
+                            <js-element
+                                js="highlight"
+                                update="results">Highlight</js-element>
+                        </span>
+                    </each-element>
+                </div>
+            </a>
+        </div>
+    
+</each-element>
+
+<script>
+    const results = new dynamicVariable('results', []);
+
+    async function search() {
+        const query = document.getElementById('searchBar').value;
+        const response = await fetch(`/api/v1/search`, {
+            method: 'POST',
+            headers: {
+                Authorization: `Bearer ${password}`,
+            },
+            body: JSON.stringify({ query }),
+        });
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
+        const data = await response.json();
+        // in every data[i].content, check for every instance of the word you're searching for, and create a new array in data[i] called highlights, which is an array of strings. Each string is the 3 words before and after the word you're searching for, and the word itself. If the word is at the beginning or end of the string, just add the words that are there.
+        for (let i = 0; i < data.length; i++) {
+            const content = data[i].content;
+            const highlights = [];
+            const words = content.split(' ');
+            for (let j = 0; j < words.length; j++) {
+                if (words[j].toLowerCase().includes(query.toLowerCase())) {
+                    const start = Math.max(0, j - 3);
+                    const end = Math.min(words.length, j + 4);
+                    highlights.push(words.slice(start, end).join(' '));
+                }
+            }
+            data[i].highlights = highlights;
+        }
+        results.set(data);
+    }
+</script>
+
+<style>
+    body {
+        background-color: black;
+        color: white;
+    }
+</style>
