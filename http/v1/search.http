@@ -3,6 +3,6 @@ Content-Type: application/json
 Authorization: Bearer {{$dotenv PASSWORD}}
 
 {
-    "query": "Neovim"
+    "query": "nvim" 
 }
 
