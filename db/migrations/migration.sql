@@ -26,3 +26,13 @@ CREATE TABLE models (
     provider_id UUID REFERENCES ai_providers(id) ON DELETE CASCADE,
     created_at TIMESTAMP DEFAULT NOW()
 );
+
+
+
+
+CREATE TABLE journal_entries (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    content TEXT NOT NULL DEFAULT '',
+    attached_files TEXT[] DEFAULT '{}',
+    created_at TIMESTAMP DEFAULT NOW(),
+)
