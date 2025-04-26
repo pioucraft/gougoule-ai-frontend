@@ -201,7 +201,7 @@
         padding-left: 20px;
     }
 
-    code {
+    pre > code {
         display: block; /* Ensure the code block takes up its own line */
         overflow-x: auto; /* Enable horizontal scrolling */
         white-space: pre; /* Preserve whitespace and prevent wrapping */
@@ -211,8 +211,18 @@
         border-radius: 4px; /* Optional: Add rounded corners */
     }
 
+    code {
+        background-color: #1e1e1e; /* Optional: Add a background for better visibility */
+        padding: 2px 4px; /* Optional: Add padding for better readability */
+        border-radius: 4px; /* Optional: Add rounded corners */
+    }
+
     pre {
         overflow-x: auto; /* Ensure the parent <pre> allows horizontal scrolling */
+    }
+
+    p {
+        padding-bottom: 1rem; /* Add space between paragraphs */
     }
 
     * {
