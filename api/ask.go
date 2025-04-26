@@ -204,12 +204,6 @@ func conversation(messages []map[string]any, w http.ResponseWriter, model string
 		"response_format": map[string]string{
 			"type": "text",
 		},
-		"temperature":           1,
-		"max_completion_tokens": 2048,
-		"top_p":                 1,
-		"frequency_penalty":     0,
-		"presence_penalty":      0,
-		"store":                 false,
 	}
 
 	jsonData, err := json.Marshal(data)
