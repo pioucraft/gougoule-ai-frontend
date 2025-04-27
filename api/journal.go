@@ -58,5 +58,40 @@ func JournalHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("200 OK"))
-	} 
+	} else if r.Method == http.MethodPut {
+		var requestBody struct {
+			ID      string `json:"id"`
+			Content string `json:"content"`
+		}
+		err := json.NewDecoder(r.Body).Decode(&requestBody)
+		if err != nil {
+			http.Error(w, "Error decoding request body", http.StatusBadRequest)
+			return
+		}
+		_, err = Conn.Exec(context.Background(), "UPDATE journal_entries SET content = $1 WHERE id = $2", requestBody.Content, requestBody.ID)
+		if err != nil {
+			http.Error(w, "Error updating journal entry", http.StatusInternalServerError)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("200 OK"))
+	} else if r.Method == http.MethodDelete {
+		var requestBody struct {
+			ID string `json:"id"`
+		}
+		err := json.NewDecoder(r.Body).Decode(&requestBody)
+		if err != nil {
+			http.Error(w, "Error decoding request body", http.StatusBadRequest)
+			return
+		}
+		_, err = Conn.Exec(context.Background(), "DELETE FROM journal_entries WHERE id = $1", requestBody.ID)
+		if err != nil {
+			http.Error(w, "Error deleting journal entry", http.StatusInternalServerError)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("200 OK"))
+	} else {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+	}
 }

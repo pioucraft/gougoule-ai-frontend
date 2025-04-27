@@ -1,0 +1,76 @@
+<js-element
+    update="savedContent"
+    >
+    Saved
+</js-element>
+<div class="w-full p-2">
+    <textarea
+        id="textarea"
+        oninput="adjustTextareaHeight()"
+        rows="1"
+        class="resize-none outline-none border-2 border-gray-300 rounded-md p-2 w-full hover:border-gray-500 focus:border-gray-500"
+        ></textarea>
+
+
+</div>
+<script>
+    function adjustTextareaHeight() {
+        const textarea = document.getElementById("textarea");
+        textarea.style.height = "auto"; // Reset height to calculate the new height
+        textarea.style.height = `${
+            textarea.scrollHeight + 4
+        }px`;
+        textarea.style.overflowY =
+            "hidden"
+    }
+
+    const slug = window.location.pathname.split("/")[2];
+    
+    const savedcontent = new dynamicVariable("saved", "");
+
+    async function fetchEntries() {
+        const response = await fetch("/api/v1/journal", {
+            method: "GET",
+            headers: {
+                Authorization: `Bearer ${password}`,
+            },
+        });
+        if (!response.ok) {
+            console.error("Failed to fetch entries");
+            return;
+        }
+        const data = await response.json();
+        document.getElementById("textarea").value = data.find(
+            (entry) => entry.id == slug
+        ).content;
+        savedContent.set(data.find(
+            (entry) => entry.id == slug
+        ).content);
+        adjustTextareaHeight();
+    }
+    fetchEntries();
+
+       window.setInterval(() => {
+        if(document.getElementById("textarea").value != savedContent.value) {
+            savedContent.set(document.getElementById("textarea").value);
+            fetch(`/api/v1/journal/`, {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${password}`,
+                },
+                body: JSON.stringify({
+                    content: savedContent,
+                    id: slug,
+                }),
+            });
+        }
+    }, 3*1000)
+</script>
+
+<style>
+    body {
+        background-color: black;
+        color: white;
+    }
+</style>

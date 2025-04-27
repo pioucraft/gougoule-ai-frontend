@@ -1,26 +1,35 @@
-<div class="w-full p-2">
-    <textarea
-        id="textarea"
-        oninput="adjustTextareaHeight()"
-        rows="1"
-        class="resize-none outline-none border-2 border-gray-300 rounded-md p-2 w-full hover:border-gray-500 focus:border-gray-500"
-        ></textarea>
-
-
-</div>
 <script>
-    function adjustTextareaHeight() {
-        const textarea = document.getElementById("textarea");
-        textarea.style.height = "auto"; // Reset height to calculate the new height
-        textarea.style.height = `${
-            textarea.scrollHeight + 4
-        }px`;
-        textarea.style.overflowY =
-            textarea.scrollHeight > maxHeight ? "scroll" : "hidden";
+    const entries = new dynamicVariable("entries", []);
+
+    async function fetchEntries() {
+        const response = await fetch("/api/v1/journal", {
+            method: "GET",
+            headers: {
+                Authorization: `Bearer ${password}`,
+            },
+        });
+        if (!response.ok) {
+            console.error("Failed to fetch entries");
+            return;
+        }
+        const data = await response.json();
+        entries.set(data);
     }
 
-
+    fetchEntries();
 </script>
+
+<each-element
+    update="entries"
+    js="entries.value"
+    element="entry"
+    class="w-full flex flex-col">
+    <a data-update="entries" data-dynamic-href="`/journal/${entry.id}`">
+        <js-element update="entries" js="entry.content">
+            Entry
+        </js-element>
+    </a>
+</each-element>
 
 <style>
     body {
