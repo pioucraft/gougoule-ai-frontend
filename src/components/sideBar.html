@@ -1,6 +1,6 @@
 <if-element update="showSideBar" js="showSideBar.value">
     <div
-        class="bg-zinc-900 p-4 h-[100dvh] overflow-auto max-[100vh]:fixed max-[100vh]:min-w-[300px] max-[100vh]:max-w-[500px] max-[100vh]:w-3/5"
+        class="bg-zinc-900 p-4 h-[100dvh] overflow-auto fixed min-w-[300px] max-w-[350px] w-3/5"
     >
         <div class="pb-3 grid grid-cols-[2rem_auto_2rem]">
             <a href="/settings" class="cursor-pointer">
@@ -31,27 +31,25 @@
                 onchange="selectModel()"
             ></select>
 
-            <div class="min-[100vh]:hidden">
-                <button
-                    class="cursor:pointer"
-                    onclick="showSideBar.set(!showSideBar.value)"
+            <button
+                class="cursor:pointer"
+                onclick="showSideBar.set(!showSideBar.value)"
                 >
-                    <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke-width="1.5"
-                        stroke="currentColor"
-                        class="size-6"
+                <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke-width="1.5"
+                    stroke="currentColor"
+                    class="size-6"
                     >
-                        <path
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                            d="m18.75 4.5-7.5 7.5 7.5 7.5m-6-15L5.25 12l7.5 7.5"
-                        />
-                    </svg>
-                </button>
-            </div>
+                    <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="m18.75 4.5-7.5 7.5 7.5 7.5m-6-15L5.25 12l7.5 7.5"
+                    />
+                </svg>
+            </button>
         </div>
 
         <div class="flex flex-row gap-2 mb-4 w-full">
@@ -124,7 +122,7 @@
 </if-element>
 <else-element update="showSideBar">
     <div
-        class="fixed min-[100vh]:hidden text-white z-10 w-full h-14 bg-black border-b-2 flex flex-row items-center pl-4"
+        class="fixed text-white z-10 w-full h-14 bg-black border-b-2 flex flex-row items-center pl-4"
     >
         <button
             class="cursor:pointer"
@@ -155,16 +153,6 @@
 
     fetchConversations();
     fetchModels();
-
-    onMount.push(function () {
-        showSideBar.set(window.innerWidth > window.innerHeight ? true : false);
-    });
-
-    window.addEventListener("resize", function () {
-        if (window.innerWidth > window.innerHeight) {
-            showSideBar.set(true);
-        }
-    });
 
     async function fetchConversations() {
         const response = await fetch("/api/v1/retrieveConversations", {
