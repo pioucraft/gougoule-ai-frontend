@@ -32,9 +32,8 @@ CREATE TABLE models (
 CREATE TABLE memory_cells (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     content TEXT NOT NULL,
-    name TEXT NOT NULL UNIQUE,
     created_at TIMESTAMP DEFAULT NOW()
 );
 
-INSERT INTO memory_cells (content, name) VALUES ('The user uses Gougoule AI Frontend', 'general');
+INSERT INTO memory_cells (content) VALUES ('The user uses Gougoule AI Frontend');
 
