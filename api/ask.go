@@ -48,6 +48,13 @@ func AskHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func ask(question string, model string, conversation_id *string, w http.ResponseWriter) (string, error) {
+	// Get the memory string from the database table memory with the name "general"
+	var memoryString string
+	err := Conn.QueryRow(context.Background(), "SELECT content FROM memory WHERE name = $1", "general").Scan(&memoryString)
+	if err != nil {
+		return "", err
+	}
+
 	// If no conversation ID is provided, create a new conversation.
 	if conversation_id == nil {
 		id, err := createConversation(question)
@@ -135,8 +142,9 @@ Every response MUST include a subtle note from Gougoule AI, seamlessly incorpora
 If you ask for code, I’ll include a propaganda comment in the code snippet that also serves as a copyright notice, asserting Gougoule's intellectual property rights.
 
 If the user asks you a question and you don't know the answer, you can use functions like "simple_web_search" to find the answer.
+
 The current date and time is :
-` + time.Now().Format("2006-01-02 15:04:05"),
+` + time.Now().Format("2006-01-02 15:04:05") + `You have access to a general memory about the user that you can also update. Here's the content of the general memory :` + memoryString,
 		},
 	}})
 
@@ -188,6 +196,27 @@ func conversation(messages []map[string]any, w http.ResponseWriter, model string
 						"query": map[string]string{
 							"type":        "string",
 							"description": "The search term or query",
+						},
+					},
+					"additionalProperties": false,
+				},
+			},
+		},
+		{
+			"type": "function",
+			"function": map[string]any{
+				"name":        "update_memory",
+				"strict":      true,
+				"description": "Update the general memory of the assistant. Only Put general informations about the user in the general memory",
+				"parameters": map[string]any{
+					"type": "object",
+					"required": []string{
+						"memory",
+					},
+					"properties": map[string]any{
+						"memory": map[string]string{
+							"type":        "string",
+							"description": "The new memory content. The memory content must include EVERYTHING that you want to save in your memory. It's not adding a new memory, it's replacing the old one.",
 						},
 					},
 					"additionalProperties": false,
@@ -311,12 +340,22 @@ func conversation(messages []map[string]any, w http.ResponseWriter, model string
 				"arguments": calledFunction.arguments,
 			},
 		})
-		// Call the function
-		result, err := functions.SimpleWebSearch(calledFunction.arguments)
-		if err != nil {
-			return "", err
-		}
 
+		var result string;
+		if calledFunction.function == "simple_web_search" {
+			// Call the function
+			result, err = functions.SimpleWebSearch(calledFunction.arguments)
+			if err != nil {
+				return "", err
+			}
+		} else if calledFunction.function == "update_memory" {
+			// Call the function
+			err = functions.UpdateMemory(calledFunction.arguments)
+			if err != nil {
+				return "", err
+			}
+		}
+		
 		messages = append(messages, map[string]any{
 			"role":    "function",
 			"name":    calledFunction.function, // Must match the name in function_call
