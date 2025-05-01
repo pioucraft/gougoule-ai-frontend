@@ -150,6 +150,12 @@ func Conversation(messages []map[string]any, w http.ResponseWriter, model string
 			if err != nil {
 				return "", err
 			}
+		} else if calledFunction.function == "memory_create" {
+			// Call the function
+			err = functions.MemoryCreate(calledFunction.arguments)
+			if err != nil {
+				return "", err
+			}
 		} 
 		messages = append(messages, map[string]any{
 			"role":    "function",
