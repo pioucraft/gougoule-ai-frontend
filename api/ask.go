@@ -50,7 +50,7 @@ func AskHandler(w http.ResponseWriter, r *http.Request) {
 func ask(question string, model string, conversation_id *string, w http.ResponseWriter) (string, error) {
 	// Get the memory string from the database table memory with the name "general"
 	var memoryString string
-	err := Conn.QueryRow(context.Background(), "SELECT content FROM memory WHERE name = $1", "general").Scan(&memoryString)
+	err := Conn.QueryRow(context.Background(), "SELECT content FROM memory_cells WHERE name = $1", "general").Scan(&memoryString)
 	if err != nil {
 		return "", err
 	}
@@ -341,7 +341,7 @@ func conversation(messages []map[string]any, w http.ResponseWriter, model string
 			},
 		})
 
-		var result string;
+		var result string
 		if calledFunction.function == "simple_web_search" {
 			// Call the function
 			result, err = functions.SimpleWebSearch(calledFunction.arguments)
@@ -350,12 +350,12 @@ func conversation(messages []map[string]any, w http.ResponseWriter, model string
 			}
 		} else if calledFunction.function == "update_memory" {
 			// Call the function
-			err = functions.UpdateMemory(calledFunction.arguments)
+			err = functions.UpdateMemory(calledFunction.arguments, Conn, context.Background())
 			if err != nil {
 				return "", err
 			}
 		}
-		
+
 		messages = append(messages, map[string]any{
 			"role":    "function",
 			"name":    calledFunction.function, // Must match the name in function_call
