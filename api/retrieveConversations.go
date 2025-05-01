@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"encoding/json"
+	"framework/api/db"
 	"net/http"
 )
 
@@ -16,7 +17,7 @@ func RetrieveConversationsHandler(w http.ResponseWriter, r *http.Request) {
 		UUID  string `json:"id"`
 	}
 	var conversations []conversation
-	conversationsFromDB, err := Conn.Query(context.Background(), "SELECT title, id FROM conversations ORDER BY created_at DESC")
+	conversationsFromDB, err := db.Conn.Query(context.Background(), "SELECT title, id FROM conversations ORDER BY created_at DESC")
 	if err != nil {
 		http.Error(w, "Error retrieving conversations", http.StatusInternalServerError)
 		return

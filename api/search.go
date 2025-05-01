@@ -1,9 +1,10 @@
 package api
 
 import (
-	"net/http"
 	"context"
 	"encoding/json"
+	"framework/api/db"
+	"net/http"
 )
 
 func SearchHandler(w http.ResponseWriter, r *http.Request) {
@@ -16,7 +17,7 @@ func SearchHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	rows, err := Conn.Query(context.Background(), `SELECT content, conversation_id 
+	rows, err := db.Conn.Query(context.Background(), `SELECT content, conversation_id 
 	FROM messages 
 	WHERE search_vector @@ to_tsquery('english', replace($1, ' ', ' & ')) 
 	ORDER BY created_at DESC;`, requestBody.Query)
@@ -34,8 +35,8 @@ func SearchHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		result := map[string]string{
-			"content":        content,
-			"conversation_id":  conversationID,
+			"content":         content,
+			"conversation_id": conversationID,
 		}
 		results = append(results, result)
 	}
@@ -52,4 +53,3 @@ func SearchHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Write(jsonResponse)
 }
-

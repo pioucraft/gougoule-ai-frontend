@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"encoding/json"
+	"framework/api/db"
 	"net/http"
 )
 
@@ -19,7 +20,7 @@ func AIModels(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		_, err = Conn.Exec(context.Background(), "INSERT INTO models (name, provider_id) VALUES ($1, $2)", requestBody.Name, requestBody.ProviderID)
+		_, err = db.Conn.Exec(context.Background(), "INSERT INTO models (name, provider_id) VALUES ($1, $2)", requestBody.Name, requestBody.ProviderID)
 		if err != nil {
 			http.Error(w, "Error inserting AI model", http.StatusInternalServerError)
 			return
@@ -27,7 +28,7 @@ func AIModels(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("200 OK"))
 	} else if r.Method == http.MethodGet {
-		rows, err := Conn.Query(context.Background(), "SELECT name, provider_id, id FROM models ORDER BY created_at")
+		rows, err := db.Conn.Query(context.Background(), "SELECT name, provider_id, id FROM models ORDER BY created_at")
 		if err != nil {
 			http.Error(w, "Error querying AI models", http.StatusInternalServerError)
 			return
@@ -74,7 +75,7 @@ func AIModels(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		_, err = Conn.Exec(context.Background(), "DELETE FROM models WHERE id = $1", requestBody.ID)
+		_, err = db.Conn.Exec(context.Background(), "DELETE FROM models WHERE id = $1", requestBody.ID)
 		if err != nil {
 			http.Error(w, "Error deleting AI model", http.StatusInternalServerError)
 			return
@@ -93,7 +94,7 @@ func AIModels(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Error decoding request body", http.StatusBadRequest)
 			return
 		}
-		_, err = Conn.Exec(context.Background(), "UPDATE models SET name = $1, provider_id = $2 WHERE id = $3", requestBody.Name, requestBody.ProviderID, requestBody.ID)
+		_, err = db.Conn.Exec(context.Background(), "UPDATE models SET name = $1, provider_id = $2 WHERE id = $3", requestBody.Name, requestBody.ProviderID, requestBody.ID)
 		if err != nil {
 			http.Error(w, "Error updating AI model", http.StatusInternalServerError)
 			return

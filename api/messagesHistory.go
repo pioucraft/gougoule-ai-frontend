@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"encoding/json"
+	"framework/api/db"
 	"net/http"
 )
 
@@ -34,7 +35,7 @@ func MessagesHistoryHandler(w http.ResponseWriter, r *http.Request, conversation
 }
 
 func MessagesHistory(conversation_id string) ([]map[string]string, error) {
-	rows, err := Conn.Query(context.Background(), "SELECT role, content FROM messages WHERE conversation_id = $1 ORDER BY created_at", conversation_id)
+	rows, err := db.Conn.Query(context.Background(), "SELECT role, content FROM messages WHERE conversation_id = $1 ORDER BY created_at", conversation_id)
 	if err != nil {
 		return nil, err
 	}

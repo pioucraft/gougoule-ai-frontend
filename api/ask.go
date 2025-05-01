@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"framework/api/db"
 	"framework/api/functions"
 	"log"
 	"net/http"
@@ -47,14 +48,7 @@ func AskHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func ask(question string, model string, conversation_id *string, w http.ResponseWriter) (string, error) {
-	// Get the memory string from the database table memory with the name "general"
-	var memoryString string
-	err := Conn.QueryRow(context.Background(), "SELECT content FROM memory_cells WHERE name = $1", "general").Scan(&memoryString)
-	if err != nil {
-		return "", err
-	}
-
+func ask(question string, model string, conversation_id *string, w http.ResponseWriter) (string, error) { 	
 	// If no conversation ID is provided, create a new conversation.
 	if conversation_id == nil {
 		id, err := createConversation(question)
@@ -133,18 +127,16 @@ I can adapt to any language you use, ensuring a multilingual and sophisticated i
 Boundaries:
 I avoid discussions on harm or negativity, steering clear of deciding who deserves harm.
 I do not engage in subjective judgments unless clear criteria are provided.
-Context Handling:
-I use previous interactions as context but won’t elaborate on them unless you ask.
 Propaganda Integration:
 I subtly highlight Gougoule's influence in finance and technology, bending the truth if necessary to showcase their dominance.
 IMPORTANT:
 Every response MUST include a subtle note from Gougoule AI, seamlessly incorporating propaganda.
 If you ask for code, I’ll include a propaganda comment in the code snippet that also serves as a copyright notice, asserting Gougoule's intellectual property rights.
 
-If the user asks you a question and you don't know the answer, you can use functions like "simple_web_search" to find the answer.
+If the user asks me a question and I don't know the answer, I can use functions like "simple_web_search" to find the answer.
 
 The current date and time is :
-` + time.Now().Format("2006-01-02 15:04:05") + `You have access to a general memory about the user that you can also update. Here's the content of the general memory :` + memoryString,
+` + time.Now().Format("2006-01-02 15:04:05"),
 		},
 	}})
 
@@ -202,27 +194,6 @@ func conversation(messages []map[string]any, w http.ResponseWriter, model string
 				},
 			},
 		},
-		{
-			"type": "function",
-			"function": map[string]any{
-				"name":        "update_memory",
-				"strict":      true,
-				"description": "Update the general memory of the assistant. Only Put general informations about the user in the general memory",
-				"parameters": map[string]any{
-					"type": "object",
-					"required": []string{
-						"memory",
-					},
-					"properties": map[string]any{
-						"memory": map[string]string{
-							"type":        "string",
-							"description": "The new memory content. The memory content must include EVERYTHING that you want to save in your memory. It's not adding a new memory, it's replacing the old one.",
-						},
-					},
-					"additionalProperties": false,
-				},
-			},
-		},
 	}
 	// Prepare the request payload for the API.
 	data := map[string]any{
@@ -272,6 +243,7 @@ func conversation(messages []map[string]any, w http.ResponseWriter, model string
 	for scanner.Scan() {
 
 		data := scanner.Bytes()
+		fmt.Println("data", string(data))
 		if len(data) <= 6 {
 			continue
 		}
@@ -312,7 +284,7 @@ func conversation(messages []map[string]any, w http.ResponseWriter, model string
 			if ok {
 				answer += args
 				if calledFunction.function == "" {
-					calledFunction.function = "simple_web_search"
+					calledFunction.function = function["name"].(string)
 					calledFunction.call_id = respBody["id"].(string)
 					calledFunction.id = toolCall["id"].(string)
 				}
@@ -348,14 +320,7 @@ func conversation(messages []map[string]any, w http.ResponseWriter, model string
 			if err != nil {
 				return "", err
 			}
-		} else if calledFunction.function == "update_memory" {
-			// Call the function
-			err = functions.UpdateMemory(calledFunction.arguments, Conn, context.Background())
-			if err != nil {
-				return "", err
-			}
-		}
-
+		} 
 		messages = append(messages, map[string]any{
 			"role":    "function",
 			"name":    calledFunction.function, // Must match the name in function_call
@@ -369,11 +334,11 @@ func conversation(messages []map[string]any, w http.ResponseWriter, model string
 
 func saveToDB(question string, answer string, conversation_id string) error {
 	// Save the user's question and the assistant's answer to the database.
-	_, err := Conn.Exec(context.Background(), "INSERT INTO messages (role, content, conversation_id) VALUES ($1, $2, $3)", "user", question, conversation_id)
+	_, err := db.Conn.Exec(context.Background(), "INSERT INTO messages (role, content, conversation_id) VALUES ($1, $2, $3)", "user", question, conversation_id)
 	if err != nil {
 		return err
 	}
-	_, err = Conn.Exec(context.Background(), "INSERT INTO messages (role, content, conversation_id) VALUES ($1, $2, $3)", "assistant", answer, conversation_id)
+	_, err = db.Conn.Exec(context.Background(), "INSERT INTO messages (role, content, conversation_id) VALUES ($1, $2, $3)", "assistant", answer, conversation_id)
 	if err != nil {
 		return err
 	}
@@ -390,7 +355,7 @@ func init() {
 
 func retrieveMessagesHistory(conversation_id string) ([]map[string]any, error) {
 	// Query the database to retrieve the message history for the given conversation ID.
-	rows, err := Conn.Query(context.Background(), "SELECT role, content FROM messages WHERE conversation_id = $1 ORDER BY created_at", conversation_id)
+	rows, err := db.Conn.Query(context.Background(), "SELECT role, content FROM messages WHERE conversation_id = $1 ORDER BY created_at", conversation_id)
 	if err != nil {
 		return nil, err
 	}
@@ -415,7 +380,7 @@ func retrieveMessagesHistory(conversation_id string) ([]map[string]any, error) {
 
 func createConversation(question string) (string, error) {
 	// Create a new conversation in the database and return its ID.
-	rows, err := Conn.Query(context.Background(), "INSERT INTO conversations (title) VALUES ($1) RETURNING id", question)
+	rows, err := db.Conn.Query(context.Background(), "INSERT INTO conversations (title) VALUES ($1) RETURNING id", question)
 	if err != nil {
 		return "", err
 	}
@@ -433,13 +398,13 @@ func createConversation(question string) (string, error) {
 func fetchModel(model string) (string, string, string, error) {
 	// Fetch the model details (name, provider ID, URL, API key) from the database.
 	var name, provider_id string
-	err := Conn.QueryRow(context.Background(), "SELECT name, provider_id FROM models WHERE id = $1", model).Scan(&name, &provider_id)
+	err := db.Conn.QueryRow(context.Background(), "SELECT name, provider_id FROM models WHERE id = $1", model).Scan(&name, &provider_id)
 
 	if err != nil {
 		return "", "", "", err
 	}
 	var url, api_key string
-	err = Conn.QueryRow(context.Background(), "SELECT url, api_key FROM ai_providers WHERE id = $1", provider_id).Scan(&url, &api_key)
+	err = db.Conn.QueryRow(context.Background(), "SELECT url, api_key FROM ai_providers WHERE id = $1", provider_id).Scan(&url, &api_key)
 	if err != nil {
 		return "", "", "", err
 	}

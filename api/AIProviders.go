@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"encoding/json"
+	"framework/api/db"
 	"net/http"
 )
 
@@ -20,7 +21,7 @@ func AIProvidersHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		_, err = Conn.Exec(context.Background(), "INSERT INTO ai_providers (name, api_key, url) VALUES ($1, $2, $3)", requestBody.Name, requestBody.Api_key, requestBody.URL)
+		_, err = db.Conn.Exec(context.Background(), "INSERT INTO ai_providers (name, api_key, url) VALUES ($1, $2, $3)", requestBody.Name, requestBody.Api_key, requestBody.URL)
 		if err != nil {
 			http.Error(w, "Error inserting AI provider", http.StatusInternalServerError)
 			return
@@ -28,7 +29,7 @@ func AIProvidersHandler(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("200 OK"))
 	} else if r.Method == http.MethodGet {
-		rows, err := Conn.Query(context.Background(), "SELECT name, url, id FROM ai_providers ORDER BY created_at")
+		rows, err := db.Conn.Query(context.Background(), "SELECT name, url, id FROM ai_providers ORDER BY created_at")
 		if err != nil {
 			http.Error(w, "Error querying AI providers", http.StatusInternalServerError)
 			return
@@ -75,7 +76,7 @@ func AIProvidersHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		_, err = Conn.Exec(context.Background(), "DELETE FROM ai_providers WHERE id = $1", requestBody.ID)
+		_, err = db.Conn.Exec(context.Background(), "DELETE FROM ai_providers WHERE id = $1", requestBody.ID)
 		if err != nil {
 			http.Error(w, "Error deleting AI provider", http.StatusInternalServerError)
 			return
@@ -94,7 +95,7 @@ func AIProvidersHandler(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Error decoding request body", http.StatusBadRequest)
 			return
 		}
-		_, err = Conn.Exec(context.Background(), "UPDATE ai_providers SET name = $1, url = $2 WHERE id = $3", requestBody.Name, requestBody.URL, requestBody.ID)
+		_, err = db.Conn.Exec(context.Background(), "UPDATE ai_providers SET name = $1, url = $2 WHERE id = $3", requestBody.Name, requestBody.URL, requestBody.ID)
 		if err != nil {
 			http.Error(w, "Error updating AI provider", http.StatusInternalServerError)
 			return
