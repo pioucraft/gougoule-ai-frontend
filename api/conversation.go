@@ -7,6 +7,7 @@ import (
 	"framework/api/functions"
 	"net/http"
 	"encoding/json"
+	"github.com/google/uuid"
 )
 
 func Conversation(messages []map[string]any, w http.ResponseWriter, model string) (string, error) {
@@ -15,30 +16,7 @@ func Conversation(messages []map[string]any, w http.ResponseWriter, model string
 		return "", err
 	}
 
-	tools := []map[string]any{
-		{
-			"type": "function",
-			"function": map[string]any{
-				"name":        "simple_web_search",
-				"strict":      true,
-				"description": "A simple web search tool that can be used to find information on the internet.",
-				"parameters": map[string]any{
-					"type": "object",
-					"required": []string{
-						"query",
-					},
-					"properties": map[string]any{
-						"query": map[string]string{
-							"type":        "string",
-							"description": "The search term or query",
-						},
-					},
-					"additionalProperties": false,
-				},
-			},
-		},
-	}
-	// Prepare the request payload for the API.
+	tools := Tools()	// Prepare the request payload for the API.
 	data := map[string]any{
 		"model":    modelName,
 		"messages": messages,
@@ -70,6 +48,7 @@ func Conversation(messages []map[string]any, w http.ResponseWriter, model string
 	defer resp.Body.Close()
 
 	answer := ""
+	query := ""
 	var calledFunction struct {
 		function  string
 		id        string
@@ -124,14 +103,23 @@ func Conversation(messages []map[string]any, w http.ResponseWriter, model string
 			}
 			args, ok := function["arguments"].(string)
 			if ok {
-				answer += args
+				query += args
+
 				if calledFunction.function == "" {
 					calledFunction.function = function["name"].(string)
-					calledFunction.call_id = respBody["id"].(string)
-					calledFunction.id = toolCall["id"].(string)
-				}
+					if callID, ok := respBody["id"].(string); ok {
+						calledFunction.call_id = callID
+					} else {
+						calledFunction.call_id = UUID()
+					}
 
-				calledFunction.arguments = string(answer)
+					if toolCallID, ok := toolCall["id"].(string); ok {
+						calledFunction.id = toolCallID
+					} else {
+						calledFunction.id = UUID()
+					}
+				}
+				calledFunction.arguments = string(query)
 			}
 		} else if content, ok := delta["content"]; ok && content != nil {
 			if contentStr, ok := content.(string); ok {
@@ -172,4 +160,9 @@ func Conversation(messages []map[string]any, w http.ResponseWriter, model string
 		return Conversation(messages, w, model)
 	}
 	return answer, nil
+}
+
+// UUID generates a UUIDv4 string.
+func UUID() string {
+	return uuid.New().String()
 }
