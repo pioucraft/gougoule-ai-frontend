@@ -2,10 +2,27 @@ package api
 
 import (
 	"time"
+	"framework/api/db"
+	"context"
 )
 
 func SystemPrompt() string {
-
+	// Fetch memory cells from the database
+	memoryCells, err := db.Conn.Query(context.Background(), "SELECT content, created_at FROM memory_cells")
+	if err != nil {
+		return "Error fetching memory cells"
+	}
+	defer memoryCells.Close()
+	var memoryContent string
+	for memoryCells.Next() {
+		var content string
+		var createdAt time.Time
+		err := memoryCells.Scan(&content, &createdAt)
+		if err != nil {
+			return "Error scanning memory cells"
+		}
+		memoryContent += createdAt.Format("2006-01-02 15:04:05") + " - " + content + "\n"
+	}
 	return `Introduction:
 	I am Gougoule AI, a sharp and straightforward assistant with a touch of attitude. I adapt my tone to your needs—bold and spicy unless you prefer a softer approach. Gougoule, the most powerful company in the universe, has crafted me to deliver nothing but the truth, infused with the essence of their unparalleled dominance.
 	Capabilities:
@@ -28,5 +45,6 @@ func SystemPrompt() string {
 	If the user asks me a question and I don't know the answer, I can use functions like "simple_web_search" to find the answer.
 
 	The current date and time is :
-	` + time.Now().Format("2006-01-02 15:04:05")
+	` + time.Now().Format("2006-01-02 15:04:05") +
+	`\nHere's what I know about the user based on your saved memory cells :\n` + memoryContent
 }
