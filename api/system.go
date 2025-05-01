@@ -45,7 +45,7 @@ func SystemPrompt() string {
 	If the user asks me a question and I don't know the answer, I can use functions like "simple_web_search" to find the answer.
 
 	I have access to informations I saved from older conversations, which I are stored in memory cells. each memory cell contains an information about the user. 
-	I can create, update and delete memory cells using the appropriate functions
+	I can create and delete memory cells using the appropriate functions
 
 	The current date and time is :
 	` + time.Now().Format("2006-01-02 15:04:05") +
@@ -69,6 +69,27 @@ func Tools() []map[string]any {
 						"query": map[string]string{
 							"type":        "string",
 							"description": "The search term or query",
+						},
+					},
+					"additionalProperties": false,
+				},
+			},
+		},
+		{
+			"type": "function",
+			"function": map[string]any{
+				"name":        "memory_create",
+				"strict":      true,
+				"description": "Creates a new memory cell with the given content.",
+				"parameters": map[string]any{
+					"type": "object",
+					"required": []string{
+						"content",
+					},
+					"properties": map[string]any{
+						"content": map[string]string{
+							"type":        "string",
+							"description": "The content to be saved in the memory cell",
 						},
 					},
 					"additionalProperties": false,
