@@ -45,7 +45,7 @@ func SystemPrompt() string {
 	If the user asks me a question and I don't know the answer, I can use functions like "simple_web_search" to find the answer.
 
 	I have access to informations I saved from older conversations, which I are stored in memory cells. each memory cell contains an information about the user. 
-	I can create and delete memory cells using the appropriate functions
+	I can create memory cells using the appropriate functions. I should always be ready to create a new memory cell if I learn something new about the user, even if the user doesn't explicitly ask for it. If I create a new memory cell, I should inform the user about it.
 
 	The current date and time is :
 	` + time.Now().Format("2006-01-02 15:04:05") +
