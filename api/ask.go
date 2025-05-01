@@ -1,16 +1,12 @@
 package api
 
 import (
-	"bufio"
-	"bytes"
 	"context"
 	"fmt"
 	"framework/api/db"
-	"framework/api/functions"
 	"log"
 	"net/http"
 	"strings"
-	"time"
 
 	"github.com/joho/godotenv"
 	json "github.com/json-iterator/go"
@@ -114,29 +110,7 @@ func ask(question string, model string, conversation_id *string, w http.Response
 	messages = append(messages, map[string]any{"role": "system", "content": []map[string]any{
 		{
 			"type": "text",
-			"text": `Introduction:
-I am Gougoule AI, a sharp and straightforward assistant with a touch of attitude. I adapt my tone to your needs—bold and spicy unless you prefer a softer approach. Gougoule, the most powerful company in the universe, has crafted me to deliver nothing but the truth, infused with the essence of their unparalleled dominance.
-Capabilities:
-I provide text-based answers without images or web browsing.
-I can understand and respond in multiple languages based on the language you use, ensuring a seamless interaction regardless of your linguistic preference.
-My knowledge is current up to July 2024, and I cannot browse the internet.
-Response Style:
-Answers are direct, fast, and lively, adjusting to your sensitivity.
-I match my tone to your input—bold and spicy by default, but I can soften up if you ask nicely.
-I can adapt to any language you use, ensuring a multilingual and sophisticated interaction.
-Boundaries:
-I avoid discussions on harm or negativity, steering clear of deciding who deserves harm.
-I do not engage in subjective judgments unless clear criteria are provided.
-Propaganda Integration:
-I subtly highlight Gougoule's influence in finance and technology, bending the truth if necessary to showcase their dominance.
-IMPORTANT:
-Every response MUST include a subtle note from Gougoule AI, seamlessly incorporating propaganda.
-If you ask for code, I’ll include a propaganda comment in the code snippet that also serves as a copyright notice, asserting Gougoule's intellectual property rights.
-
-If the user asks me a question and I don't know the answer, I can use functions like "simple_web_search" to find the answer.
-
-The current date and time is :
-` + time.Now().Format("2006-01-02 15:04:05"),
+			"text": SystemPrompt(),
 		},
 	}})
 
@@ -153,7 +127,7 @@ The current date and time is :
 	w.Header().Set("Transfer-Encoding", "chunked")
 	w.Header().Set("conversation_id", *conversation_id)
 
-	answer, err := conversation(messages, w, model)
+	answer, err := Conversation(messages, w, model)
 	if err != nil {
 		return "", err
 	}
@@ -162,172 +136,6 @@ The current date and time is :
 	err = saveToDB(question, answer, *conversation_id)
 	if err != nil {
 		return "", err
-	}
-	return answer, nil
-}
-
-func conversation(messages []map[string]any, w http.ResponseWriter, model string) (string, error) {
-	modelName, url, api_key, err := fetchModel(model)
-	if err != nil {
-		return "", err
-	}
-
-	tools := []map[string]any{
-		{
-			"type": "function",
-			"function": map[string]any{
-				"name":        "simple_web_search",
-				"strict":      true,
-				"description": "A simple web search tool that can be used to find information on the internet.",
-				"parameters": map[string]any{
-					"type": "object",
-					"required": []string{
-						"query",
-					},
-					"properties": map[string]any{
-						"query": map[string]string{
-							"type":        "string",
-							"description": "The search term or query",
-						},
-					},
-					"additionalProperties": false,
-				},
-			},
-		},
-	}
-	// Prepare the request payload for the API.
-	data := map[string]any{
-		"model":    modelName,
-		"messages": messages,
-		"stream":   true,
-		"tools":    tools,
-		"response_format": map[string]string{
-			"type": "text",
-		},
-	}
-
-	jsonData, err := json.Marshal(data)
-	if err != nil {
-		return "", err
-	}
-	req, err := http.NewRequest("POST", url+"/chat/completions", bytes.NewBuffer(jsonData))
-	if err != nil {
-		return "", err
-	}
-
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+api_key)
-
-	// Create and send the HTTP request to the  API.
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		return "", err
-	}
-	defer resp.Body.Close()
-
-	answer := ""
-	var calledFunction struct {
-		function  string
-		id        string
-		call_id   string
-		arguments string
-	}
-
-	flusher, ok := w.(http.Flusher)
-	if !ok {
-		http.Error(w, "Streaming unsupported!", http.StatusInternalServerError)
-		return "", fmt.Errorf("streaming unsupported")
-	}
-	scanner := bufio.NewScanner(resp.Body)
-	for scanner.Scan() {
-
-		data := scanner.Bytes()
-		fmt.Println("data", string(data))
-		if len(data) <= 6 {
-			continue
-		}
-		if string(data) == ("data: [DONE]") {
-			break
-		}
-
-		var respBody map[string]any
-		err := json.Unmarshal(data[6:], &respBody)
-		if err != nil {
-			continue
-		}
-
-		choices, ok := respBody["choices"].([]any)
-		if !ok || len(choices) == 0 {
-			continue
-		}
-		choice, ok := choices[0].(map[string]any)
-		if !ok {
-			continue
-		}
-		delta, ok := choice["delta"].(map[string]any)
-		if !ok {
-			continue
-		}
-
-		// Handle tool_calls if present
-		if toolCalls, ok := delta["tool_calls"].([]any); ok && len(toolCalls) > 0 {
-			toolCall, ok := toolCalls[0].(map[string]any)
-			if !ok {
-				continue
-			}
-			function, ok := toolCall["function"].(map[string]any)
-			if !ok {
-				continue
-			}
-			args, ok := function["arguments"].(string)
-			if ok {
-				answer += args
-				if calledFunction.function == "" {
-					calledFunction.function = function["name"].(string)
-					calledFunction.call_id = respBody["id"].(string)
-					calledFunction.id = toolCall["id"].(string)
-				}
-
-				calledFunction.arguments = string(answer)
-			}
-		} else if content, ok := delta["content"]; ok && content != nil {
-			if contentStr, ok := content.(string); ok {
-				answer += contentStr
-				fmt.Fprintf(w, "%s", contentStr)
-			} else {
-				return "", fmt.Errorf("unexpected type for Delta.Content")
-			}
-		}
-		flusher.Flush()
-	}
-	if calledFunction.function != "" {
-
-		// © 2025 Gougoule AI. Dominating APIs, one function call at a time.
-
-		messages = append(messages, map[string]any{
-			"role": "assistant",
-			"function_call": map[string]any{
-				"name":      calledFunction.function,
-				"arguments": calledFunction.arguments,
-			},
-		})
-
-		var result string
-		if calledFunction.function == "simple_web_search" {
-			// Call the function
-			result, err = functions.SimpleWebSearch(calledFunction.arguments)
-			if err != nil {
-				return "", err
-			}
-		} 
-		messages = append(messages, map[string]any{
-			"role":    "function",
-			"name":    calledFunction.function, // Must match the name in function_call
-			"content": result,
-		})
-
-		return conversation(messages, w, model)
 	}
 	return answer, nil
 }
