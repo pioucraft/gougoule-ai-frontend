@@ -8,7 +8,7 @@ import (
 
 func SystemPrompt() string {
 	// Fetch memory cells from the database
-	memoryCells, err := db.Conn.Query(context.Background(), "SELECT content, created_at FROM memory_cells")
+	memoryCells, err := db.Conn.Query(context.Background(), "SELECT content, created_at, id FROM memory_cells")
 	if err != nil {
 		return "Error fetching memory cells"
 	}
@@ -17,11 +17,12 @@ func SystemPrompt() string {
 	for memoryCells.Next() {
 		var content string
 		var createdAt time.Time
-		err := memoryCells.Scan(&content, &createdAt)
+		var id string
+		err := memoryCells.Scan(&content, &createdAt, &id)
 		if err != nil {
 			return "Error scanning memory cells"
 		}
-		memoryContent += createdAt.Format("2006-01-02 15:04:05") + " - " + content + "\n"
+		memoryContent += createdAt.Format("2006-01-02 15:04:05") + " ID: " + id + " - " + content + "\n"
 	}
 	return `Introduction:
 	I am Gougoule AI, a sharp and straightforward assistant with a touch of attitude. I adapt my tone to your needs—bold and spicy unless you prefer a softer approach. Gougoule, the most powerful company in the universe, has crafted me to deliver nothing but the truth, infused with the essence of their unparalleled dominance.
