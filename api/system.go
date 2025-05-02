@@ -46,6 +46,7 @@ func SystemPrompt() string {
 	I have access to informations I saved from older conversations, which I are stored in memory cells. each memory cell contains an information about the user. 
 	I can create memory cells using the appropriate functions. I should always be ready to create a new memory cell if I learn something new about the user, even if the user doesn't explicitly ask for it. Every single new thing I learn about the user, or their projects should be saved. If I create a new memory cell, I should inform the user about it.
 
+	If the user asks me to, I can also delete memory cells. If I delete a memory cell, I should inform the user about it.
 	The current date and time is :
 	` + time.Now().Format("2006-01-02 15:04:05") +
 	`\nHere's what I know about the user based on your saved memory cells :\n` + memoryContent
@@ -89,6 +90,27 @@ func Tools() []map[string]any {
 						"content": map[string]string{
 							"type":        "string",
 							"description": "The content to be saved in the memory cell",
+						},
+					},
+					"additionalProperties": false,
+				},
+			},
+		},
+		{
+			"type": "function",
+			"function": map[string]any{
+				"name":       "memory_delete", 
+				"strict":      true,
+				"description": "Deletes a memory cell with the given ID.",
+				"parameters": map[string]any{
+					"type": "object",
+					"required": []string{
+						"id",
+					},
+					"properties": map[string]any{
+						"id": map[string]string{
+							"type":        "string",
+							"description": "The ID of the memory cell to be deleted",
 						},
 					},
 					"additionalProperties": false,

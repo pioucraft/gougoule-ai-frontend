@@ -1,14 +1,17 @@
 package api
 
 import (
+	"flag"
 	"bufio"
 	"bytes"
 	"fmt"
-	"framework/api/functions"
 	"net/http"
 	"encoding/json"
 	"github.com/google/uuid"
+	"framework/api/functions"
 )
+
+var devMode *bool
 
 func Conversation(messages []map[string]any, w http.ResponseWriter, model string) (string, error) {
 	modelName, url, api_key, err := fetchModel(model)
@@ -65,6 +68,9 @@ func Conversation(messages []map[string]any, w http.ResponseWriter, model string
 	for scanner.Scan() {
 
 		data := scanner.Bytes()
+		if devMode != nil && *devMode {
+			fmt.Println(string(data))
+		}
 		if len(data) <= 6 {
 			continue
 		}
@@ -156,7 +162,13 @@ func Conversation(messages []map[string]any, w http.ResponseWriter, model string
 			if err != nil {
 				return "", err
 			}
-		} 
+		} else if calledFunction.function == "memory_delete" { 
+			// Call the function
+			err = functions.MemoryDelete(calledFunction.arguments)
+			if err != nil {
+				return "", err
+			}
+		}
 		messages = append(messages, map[string]any{
 			"role":    "function",
 			"name":    calledFunction.function, // Must match the name in function_call
@@ -171,4 +183,15 @@ func Conversation(messages []map[string]any, w http.ResponseWriter, model string
 // UUID generates a UUIDv4 string.
 func UUID() string {
 	return uuid.New().String()
+}
+
+
+func init() {
+	devMode = flag.Bool("dev", false, "Enable development mode") 
+	flag.Parse()
+	if devMode != nil && *devMode {
+		fmt.Println("Running in development mode")
+	} else {
+		fmt.Println("Running in production mode")
+	}
 }
