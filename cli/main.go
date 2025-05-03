@@ -10,8 +10,8 @@ import (
 )
 
 func main() {
-	token := os.Getenv("GOI_TOKEN")
-	model := os.Getenv("GOI_MODEL")
+	token := os.Getenv("GAI_TOKEN")
+	model := os.Getenv("GAI_MODEL")
 
 	reader := bufio.NewReader(os.Stdin)
 	fmt.Print("Enter your question: ")
