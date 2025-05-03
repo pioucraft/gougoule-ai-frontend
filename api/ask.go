@@ -6,7 +6,6 @@ import (
 	"framework/api/db"
 	"log"
 	"net/http"
-	"strings"
 
 	"github.com/joho/godotenv"
 	json "github.com/json-iterator/go"
@@ -59,53 +58,6 @@ func ask(question string, model string, conversation_id *string, w http.Response
 		return "", err
 	}
 
-	// Remove any "<think>" tags from the content of the messages.
-	for i := range messages {
-		contentSlice, ok := messages[i]["content"].([]map[string]any)
-		if !ok {
-			// Try []map[string]string for backward compatibility
-			if contentSliceStr, okStr := messages[i]["content"].([]map[string]string); okStr {
-				for j := range contentSliceStr {
-					content := contentSliceStr[j]["text"]
-					for {
-						startIdx := strings.Index(content, "<think>")
-						if startIdx == -1 {
-							break
-						}
-						endIdx := strings.Index(content, "</think>")
-						if endIdx == -1 {
-							break
-						}
-						content = content[:startIdx] + content[endIdx+8:]
-					}
-					contentSliceStr[j]["text"] = content
-				}
-				messages[i]["content"] = contentSliceStr
-				continue
-			}
-			return "", fmt.Errorf("invalid content format in message")
-		}
-		for j := range contentSlice {
-			text, ok := contentSlice[j]["text"].(string)
-			if !ok {
-				continue
-			}
-			for {
-				startIdx := strings.Index(text, "<think>")
-				if startIdx == -1 {
-					break
-				}
-				endIdx := strings.Index(text, "</think>")
-				if endIdx == -1 {
-					break
-				}
-				text = text[:startIdx] + text[endIdx+8:]
-			}
-			contentSlice[j]["text"] = text
-		}
-		messages[i]["content"] = contentSlice
-	}
-
 	// Append system instructions and the user's question to the messages.
 	messages = append(messages, map[string]any{"role": "system", "content": []map[string]any{
 		{
@@ -127,7 +79,7 @@ func ask(question string, model string, conversation_id *string, w http.Response
 	w.Header().Set("Transfer-Encoding", "chunked")
 	w.Header().Set("conversation_id", *conversation_id)
 
-	answer, err := Conversation(messages, w, model)
+	answer, err := Conversation(messages, w, model, "")
 	if err != nil {
 		return "", err
 	}
@@ -178,7 +130,7 @@ func retrieveMessagesHistory(conversation_id string) ([]map[string]any, error) {
 		messages = append(messages, map[string]any{"role": role, "content": []map[string]string{
 			{
 				"type": "text",
-				"text": content,
+				"text": CleanFunctionCalls(content),
 			},
 		}})
 	}
@@ -218,3 +170,4 @@ func fetchModel(model string) (string, string, string, error) {
 	}
 	return name, url, api_key, nil
 }
+

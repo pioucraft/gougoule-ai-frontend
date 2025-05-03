@@ -13,7 +13,7 @@ import (
 
 var devMode *bool
 
-func Conversation(messages []map[string]any, w http.ResponseWriter, model string) (string, error) {
+func Conversation(messages []map[string]any, w http.ResponseWriter, model string, currentAnswer string) (string, error) {
 	modelName, url, api_key, err := fetchModel(model)
 	if err != nil {
 		return "", err
@@ -156,18 +156,27 @@ func Conversation(messages []map[string]any, w http.ResponseWriter, model string
 			if err != nil {
 				return "", err
 			}
+			functionCallString := "{@function_call}{name: " + calledFunction.function + ", arguments: " + calledFunction.arguments + ", result: " + result + "}{/function_call}"
+			answer += functionCallString
+			fmt.Fprintf(w, "%s", functionCallString)
 		} else if calledFunction.function == "memory_create" {
 			// Call the function
 			err = functions.MemoryCreate(calledFunction.arguments)
 			if err != nil {
 				return "", err
 			}
+			functionCallString := "{@function_call}{name: " + calledFunction.function + ", arguments: " + calledFunction.arguments +  "}{/function_call}"
+			answer += functionCallString
+			fmt.Fprintf(w, "%s", functionCallString)
 		} else if calledFunction.function == "memory_delete" { 
 			// Call the function
 			err = functions.MemoryDelete(calledFunction.arguments)
 			if err != nil {
 				return "", err
 			}
+			functionCallString := "{@function_call}{name: " + calledFunction.function + ", arguments: " + calledFunction.arguments +  "}{/function_call}"
+			answer += functionCallString
+			fmt.Fprintf(w, "%s", functionCallString)
 		}
 		messages = append(messages, map[string]any{
 			"role":    "function",
@@ -175,9 +184,9 @@ func Conversation(messages []map[string]any, w http.ResponseWriter, model string
 			"content": result,
 		})
 
-		return Conversation(messages, w, model)
+		return Conversation(messages, w, model, currentAnswer + answer)
 	}
-	return answer, nil
+	return currentAnswer + answer, nil
 }
 
 // UUID generates a UUIDv4 string.
@@ -195,3 +204,4 @@ func init() {
 		fmt.Println("Running in production mode")
 	}
 }
+
