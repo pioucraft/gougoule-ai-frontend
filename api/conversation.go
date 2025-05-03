@@ -1,14 +1,14 @@
 package api
 
 import (
-	"flag"
 	"bufio"
 	"bytes"
-	"fmt"
-	"net/http"
 	"encoding/json"
-	"github.com/google/uuid"
+	"flag"
+	"fmt"
 	"framework/api/functions"
+	"github.com/google/uuid"
+	"net/http"
 )
 
 var devMode *bool
@@ -19,7 +19,7 @@ func Conversation(messages []map[string]any, w http.ResponseWriter, model string
 		return "", err
 	}
 
-	tools := Tools()	// Prepare the request payload for the API.
+	tools := Tools() // Prepare the request payload for the API.
 	data := map[string]any{
 		"model":    modelName,
 		"messages": messages,
@@ -165,16 +165,16 @@ func Conversation(messages []map[string]any, w http.ResponseWriter, model string
 			if err != nil {
 				return "", err
 			}
-			functionCallString := "{@function_call}{name: " + calledFunction.function + ", arguments: " + calledFunction.arguments +  "}{/function_call}"
+			functionCallString := "{@function_call}{name: " + calledFunction.function + ", arguments: " + calledFunction.arguments + "}{/function_call}"
 			answer += functionCallString
 			fmt.Fprintf(w, "%s", functionCallString)
-		} else if calledFunction.function == "memory_delete" { 
+		} else if calledFunction.function == "memory_delete" {
 			// Call the function
 			err = functions.MemoryDelete(calledFunction.arguments)
 			if err != nil {
 				return "", err
 			}
-			functionCallString := "{@function_call}{name: " + calledFunction.function + ", arguments: " + calledFunction.arguments +  "}{/function_call}"
+			functionCallString := "{@function_call}{name: " + calledFunction.function + ", arguments: " + calledFunction.arguments + "}{/function_call}"
 			answer += functionCallString
 			fmt.Fprintf(w, "%s", functionCallString)
 		}
@@ -184,7 +184,7 @@ func Conversation(messages []map[string]any, w http.ResponseWriter, model string
 			"content": result,
 		})
 
-		return Conversation(messages, w, model, currentAnswer + answer)
+		return Conversation(messages, w, model, currentAnswer+answer)
 	}
 	return currentAnswer + answer, nil
 }
@@ -194,9 +194,8 @@ func UUID() string {
 	return uuid.New().String()
 }
 
-
 func init() {
-	devMode = flag.Bool("dev", false, "Enable development mode") 
+	devMode = flag.Bool("dev", false, "Enable development mode")
 	flag.Parse()
 	if devMode != nil && *devMode {
 		fmt.Println("Running in development mode")
@@ -204,4 +203,3 @@ func init() {
 		fmt.Println("Running in production mode")
 	}
 }
-
