@@ -63,6 +63,12 @@
                                     data-dynamic-id="`modelName-${model.id}`"
                                     class="border-2 border-gray-400 outline-none"
                                 />
+                                <div>
+                                    ID: 
+                                    <js-element
+                                        update="models providers"
+                                        js="model.id">Model ID</js-element>
+                                </div>
                             </div>
                             <div class="flex gap-5">
                                 <button
