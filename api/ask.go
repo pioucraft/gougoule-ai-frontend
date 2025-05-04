@@ -130,7 +130,7 @@ func retrieveMessagesHistory(conversation_id string) ([]map[string]any, error) {
 		messages = append(messages, map[string]any{"role": role, "content": []map[string]string{
 			{
 				"type": "text",
-				"text": CleanFunctionCalls(content),
+				"text": content,
 			},
 		}})
 	}

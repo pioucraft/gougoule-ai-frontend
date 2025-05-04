@@ -14,17 +14,18 @@ import (
 var devMode *bool
 
 func Conversation(messages []map[string]any, w http.ResponseWriter, model string, currentAnswer string) (string, error) {
+	if devMode != nil && *devMode {
+		fmt.Println(messages)
+	}
 	modelName, url, api_key, err := fetchModel(model)
 	if err != nil {
 		return "", err
 	}
 
-	tools := Tools() // Prepare the request payload for the API.
 	data := map[string]any{
 		"model":    modelName,
 		"messages": messages,
 		"stream":   true,
-		"tools":    tools,
 		"response_format": map[string]string{
 			"type": "text",
 		},
@@ -33,6 +34,9 @@ func Conversation(messages []map[string]any, w http.ResponseWriter, model string
 	jsonData, err := json.Marshal(data)
 	if err != nil {
 		return "", err
+	}
+	if devMode != nil && *devMode {
+		fmt.Println(string(jsonData))
 	}
 	req, err := http.NewRequest("POST", url+"/chat/completions", bytes.NewBuffer(jsonData))
 	if err != nil {
@@ -51,6 +55,7 @@ func Conversation(messages []map[string]any, w http.ResponseWriter, model string
 	defer resp.Body.Close()
 
 	answer := ""
+	/*
 	query := ""
 	var calledFunction struct {
 		function  string
@@ -58,6 +63,7 @@ func Conversation(messages []map[string]any, w http.ResponseWriter, model string
 		call_id   string
 		arguments string
 	}
+	*/
 
 	flusher, ok := w.(http.Flusher)
 	if !ok {
@@ -97,7 +103,8 @@ func Conversation(messages []map[string]any, w http.ResponseWriter, model string
 			continue
 		}
 
-		// Handle tool_calls if present
+		// Handle tool_calls if present. OLD VERSION !!!!
+		/*
 		if toolCalls, ok := delta["tool_calls"].([]any); ok && len(toolCalls) > 0 {
 			toolCall, ok := toolCalls[0].(map[string]any)
 			if !ok {
@@ -127,7 +134,8 @@ func Conversation(messages []map[string]any, w http.ResponseWriter, model string
 				}
 				calledFunction.arguments = string(query)
 			}
-		} else if content, ok := delta["content"]; ok && content != nil {
+		}*/
+		if content, ok := delta["content"]; ok && content != nil {
 			if contentStr, ok := content.(string); ok {
 				answer += contentStr
 				fmt.Fprintf(w, "%s", contentStr)
@@ -137,6 +145,7 @@ func Conversation(messages []map[string]any, w http.ResponseWriter, model string
 		}
 		flusher.Flush()
 	}
+	/*
 	if calledFunction.function != "" {
 
 		// © 2025 Gougoule AI. Dominating APIs, one function call at a time.
@@ -185,8 +194,112 @@ func Conversation(messages []map[string]any, w http.ResponseWriter, model string
 		})
 
 		return Conversation(messages, w, model, currentAnswer+answer)
+	}*/
+
+	messages = append(messages, map[string]any{
+		"role":    "assistant",
+		"content": []map[string]any{ 
+			{
+				"type": "text",
+				"text": answer,
+			},
+		},
+	})
+	functionCalls, err := getFunctionCalls([]byte(answer))
+	if err != nil {
+		return "", err
 	}
-	return currentAnswer + answer, nil
+
+	functionCalled := false
+	finalFunctionCallString := ""
+
+	for _, functionCall := range functionCalls {
+		if functionCall["name"] == nil {
+			continue
+		}
+		functionName, ok := functionCall["name"].(string)
+		if !ok {
+			continue
+		}
+		functionCalled = true
+		var result string
+		if functionName == "simple_web_search" {
+			// Call the function
+			result, err = functions.SimpleWebSearch(functionCall["arguments"].(string))
+			if err != nil {
+				return "", err
+			}
+		} else if functionName == "memory_create" {
+			// Call the function
+			err := functions.MemoryCreate(functionCall["arguments"].(string))
+			if err != nil {
+				return "", err
+			}
+			result = "Memory cell created successfully."
+		} else if functionName == "memory_delete" {
+			// Call the function
+			err := functions.MemoryDelete(functionCall["arguments"].(string))
+			if err != nil {
+				return "", err
+			}
+			result = "Memory cell deleted successfully."
+		} else {
+			result = "Unknown function call."
+			return "", fmt.Errorf("unknown function: %s", functionName)
+		}
+		functionCallResult := map[string]any{
+			"name":      functionName,
+			"arguments": functionCall["arguments"],
+			"result":    result,
+		}
+		functionCallString, err := json.Marshal(functionCallResult)
+		if err != nil {
+			return "", err
+		}
+		functionCallAnswer := "{@function_result}" + string(functionCallString) + "{/function_result}"
+		answer += functionCallAnswer
+		fmt.Fprintf(w, "%s", functionCallAnswer)
+		finalFunctionCallString += functionCallAnswer
+
+	}
+	if functionCalled {
+		
+		messages = append(messages, map[string]any{
+				"role":    "user",
+				"content": []map[string]any{
+					{
+						"type": "text",
+						"text": "result : " + string(finalFunctionCallString),
+					},
+				},
+		})
+
+		return Conversation(messages, w, model, currentAnswer+answer)
+	} else {
+		return currentAnswer + answer, nil
+	}
+}
+
+func getFunctionCalls(data []byte) ([]map[string]any, error) {
+	var functionCalls []map[string]any
+
+	splittedData := bytes.SplitAfter(data, []byte("{/function_call}"))
+	for _, part := range splittedData {
+		if bytes.Contains(part, []byte("{@function_call}")) {
+			functionCall := make(map[string]any)
+			start := bytes.Index(part, []byte("{@function_call}"))
+			end := bytes.Index(part, []byte("{/function_call}"))
+			if start != -1 && end != -1 {
+				functionCallData := part[start+len("{@function_call}") : end]
+				err := json.Unmarshal(functionCallData, &functionCall)
+				if err != nil {
+					return nil, err
+				}
+				functionCalls = append(functionCalls, functionCall)
+			}
+		}
+	}
+	return functionCalls, nil
 }
 
 // UUID generates a UUIDv4 string.

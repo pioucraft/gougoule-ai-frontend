@@ -134,30 +134,61 @@
 <script>
     function formatMessageObject(message) {
         if (message.role == "assistant") {
-            let parsedContent = message.content.replace("{@function_call}", "<div class='function-call'>{@function_call}");
-            parsedContent = parsedContent.replace("{/function_call}", "{/function_call}</div>");
-            parsedContent = marked.parse(parsedContent) 
+            let parsedContent = message.content
+            try {
+            parsedContent = parsedContent.replaceAll("{@function_call}", "<div class='function-call'>{@function_call}");
 
+            parsedContent = parsedContent.replaceAll("{/function_call}", "{/function_call}</div>");
             parsedContent = parsedContent.split("<div class='function-call'>");
-            parsedContent = parsedContent
-                .map(x => {
-                    if (!x.startsWith("{@function_call}")) return x;
-                    const name = x.split("{@function_call}{name: ")[1].split(", ")[0];
-                    const tempArgs = x.split(`{@function_call}{name: ${name}, arguments: `)[1]
-                   
-                    console.log(tempArgs)
-                    let args = ""
-                    args = extractLeadingJson(decodeHTMLEntitiesPureString(tempArgs))
-                    
-                    let next = x.split("}{/function_call}</div>")[1]
-                    let formattedFunctionCall = `<div class='flex flex-col border-2 w-fit p-2 gap-1'>
-                        <div>Function Call</div>
-                        <div>Name: ${name}</div>
-                        <div>Arguments: ${args}</div>
-                        </div>`
-                    return formattedFunctionCall + next 
-                }).join("<div class='function-call'>");
-            return {
+
+            parsedContent = parsedContent.map(x => {
+                if(!x.startsWith("{@function_call}")) {
+                    return x;
+                }
+
+                const next = x.split("{/function_call}")[1];
+
+                const jsonString = extractLeadingJson(x.replace("{@function_call}", ""));
+                const jsonResult = JSON.parse(jsonString);
+                console.log(jsonResult);
+                const formattedFunctionCall = `<div class='function-call flex-col border-2 w-fit p-2 gap-1'>
+                    <h3>Function call</h3>
+                    <h4>${jsonResult.name}</h4>
+                    <h5>${jsonResult.arguments}</h5>
+                    </div>`;
+                return formattedFunctionCall + next;
+            }).join("");
+
+            // do the same thing for {@function_result}, but add a jsonResult.result
+            parsedContent = parsedContent.replaceAll("{@function_result}", "<div class='function-result'>{@function_result}");
+            parsedContent = parsedContent.replaceAll("{/function_result}", "{/function_result}</div>");
+            parsedContent = parsedContent.split("<div class='function-result'>");
+
+            parsedContent = parsedContent.map(x => {
+                console.log(x);
+                if(!x.startsWith("{@function_result}")) {
+                    return x;
+                }
+
+                const next = x.split("{/function_result}")[1];
+
+                const jsonString = extractLeadingJson(x.replace("{@function_result}", ""));
+                const jsonResult = JSON.parse(jsonString);
+                const formattedFunctionCall = `<div class='function-result flex-col border-2 p-2 gap-1 max-h-[100px] hover:max-h-[100000px] overflow-hidden w-fit'>
+                    <h3>Function result</h3>
+                    <h4>${jsonResult.name}</h4>
+                    <h5>${jsonResult.arguments}</h5>
+                    <h5>${jsonResult.result}</h5>
+                    </div>`;
+                return formattedFunctionCall + next;
+            }).join("");
+            } catch (e) {
+                parsedContent = message.content; 
+            }
+            parsedContent = marked.parse(parsedContent)
+
+
+           return {
                 content: parsedContent,
                 role: message.role,
             };

@@ -1,7 +1,6 @@
 package functions
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -13,25 +12,7 @@ import (
 // Import strings for TrimSpace
 
 func SimpleWebSearch(query string) (string, error) {
-	// Define a struct to hold the expected JSON structure
-	var searchInput struct {
-		Query string `json:"query"`
-	}
-	// Unmarshal the input string (which is expected to be JSON)
-	// Note: The 'encoding/json' package must be imported for this.
-	err := json.Unmarshal([]byte(query), &searchInput)
-	if err != nil {
-		return "", fmt.Errorf("failed to unmarshal input JSON: %w", err)
-	}
 
-	// Extract the actual search query from the parsed JSON
-	actualQuery := searchInput.Query
-	if actualQuery == "" {
-		return "", fmt.Errorf("input JSON must contain a non-empty 'query' field")
-	}
-
-	// Use the extracted query for the search
-	query = actualQuery // Update the 'query' variable to be used below
 	escapedQuery := url.QueryEscape(query)
 	// Construct the URL using the standard query parameter format for DuckDuckGo HTML
 	searchURL := fmt.Sprintf("https://html.duckduckgo.com/html/?q=%s", escapedQuery)
