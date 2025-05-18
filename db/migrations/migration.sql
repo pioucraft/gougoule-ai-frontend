@@ -37,3 +37,13 @@ CREATE TABLE memory_cells (
 
 INSERT INTO memory_cells (content) VALUES ('The user uses Gougoule AI Frontend');
 
+-- Step 1: Add a generated tsvector column (if it doesn't already exist)
+ALTER TABLE messages
+ADD COLUMN search_vector tsvector GENERATED ALWAYS AS (
+  to_tsvector('english', content)
+) STORED;
+
+-- Step 2: Create a GIN index on the generated column
+CREATE INDEX IF NOT EXISTS idx_messages_search_vector
+ON messages
+USING GIN (search_vector);
