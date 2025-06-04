@@ -109,8 +109,10 @@
             event.preventDefault();
             ask();
         } else if(event.key === "i" && event.ctrlKey) {
+            event.preventDefault();
             document.getElementById("message").focus()
         } else if(event.key === "a" && event.ctrlKey) {
+            event.preventDefault();
             document.location.href = "/"
         }
     });
