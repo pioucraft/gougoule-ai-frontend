@@ -151,8 +151,8 @@
     var selectedModel;
     var showSideBar = new dynamicVariable("showSideBar", false);
 
-    fetchConversations();
-    fetchModels();
+    onMount.push(fetchConversations);
+    onMount.push(fetchModels);
 
     async function fetchConversations() {
         const response = await fetch("/api/v1/retrieveConversations", {
