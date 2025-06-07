@@ -94,7 +94,7 @@ func Conversation(messages []map[string]any, w http.ResponseWriter, model string
 			continue
 		}
 
-	if content, ok := delta["content"]; ok && content != nil {
+		if content, ok := delta["content"]; ok && content != nil {
 			if contentStr, ok := content.(string); ok {
 				answer += contentStr
 				fmt.Fprintf(w, "%s", contentStr)
@@ -171,15 +171,15 @@ func Conversation(messages []map[string]any, w http.ResponseWriter, model string
 
 	}
 	if functionCalled {
-		
+
 		messages = append(messages, map[string]any{
-				"role":    "user",
-				"content": []map[string]any{
-					{
-						"type": "text",
-						"text": "result : " + string(finalFunctionCallString),
-					},
+			"role":    "user",
+			"content": []map[string]any{
+				{
+					"type": "text",
+					"text": "result : " + string(finalFunctionCallString),
 				},
+			},
 		})
 
 		return Conversation(messages, w, model, currentAnswer+answer)
