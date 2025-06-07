@@ -1,3 +1,11 @@
+/*
+	I am sorry.
+	This code should not exist.
+	This is some very messy code.
+	The "handleFunctionCalls" function is basically a way to make it look like the main function is separated, but in reality, it is not.
+	Even if there aren't any function calls, it will still "handle function calls". And if there were a function call, it will just use the result of the function call and just continue to call the "Conversation" function again and again.
+*/
+
 package api
 
 import (
@@ -13,16 +21,8 @@ import (
 
 var devMode *bool
 
-func Conversation(messages []map[string]any, w http.ResponseWriter, model string, currentAnswer string) (string, error) {
-	if devMode != nil && *devMode {
-		fmt.Println(messages)
-	}
-	modelName, url, api_key, err := fetchModel(model)
-	if err != nil {
-		return "", err
-	}
-
-	data := map[string]any{
+func openAIAPIRequest(modelName string, messages []map[string]any, url string, api_key string) (*http.Response, error) {
+		data := map[string]any{
 		"model":    modelName,
 		"messages": messages,
 		"stream":   true,
@@ -33,14 +33,14 @@ func Conversation(messages []map[string]any, w http.ResponseWriter, model string
 
 	jsonData, err := json.Marshal(data)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	if devMode != nil && *devMode {
 		fmt.Println(string(jsonData))
 	}
 	req, err := http.NewRequest("POST", url+"/chat/completions", bytes.NewBuffer(jsonData))
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	req.Header.Set("Content-Type", "application/json")
@@ -50,8 +50,26 @@ func Conversation(messages []map[string]any, w http.ResponseWriter, model string
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
+		return nil, err
+	}
+	return resp, nil
+}
+
+func Conversation(messages []map[string]any, w http.ResponseWriter, model string, currentAnswer string) (string, error) {
+	if devMode != nil && *devMode {
+		fmt.Println(messages)
+	}
+	modelName, url, api_key, err := fetchModel(model)
+	if err != nil {
 		return "", err
 	}
+
+	resp, err := openAIAPIRequest(modelName, messages, url, api_key)
+	if err != nil {
+		http.Error(w, "Failed to create request: "+err.Error(), http.StatusInternalServerError)
+		return "", fmt.Errorf("failed to create request: %w", err)
+	}
+
 	defer resp.Body.Close()
 
 	answer := ""
@@ -113,6 +131,16 @@ func Conversation(messages []map[string]any, w http.ResponseWriter, model string
 			},
 		},
 	})
+	
+	finalAnswer, err := handleFunctionCalls(answer, messages, w, model, currentAnswer)
+	if err != nil {
+		http.Error(w, "Failed to handle function calls: "+err.Error(), http.StatusInternalServerError)
+		return "", fmt.Errorf("failed to handle function calls: %w", err)
+	}
+	return finalAnswer, nil
+}
+
+func handleFunctionCalls(answer string, messages []map[string]any, w http.ResponseWriter, model string, currentAnswer string) (string, error) {
 	functionCalls, err := getFunctionCalls([]byte(answer))
 	if err != nil {
 		return "", err
