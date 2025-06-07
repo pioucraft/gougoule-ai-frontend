@@ -103,39 +103,7 @@ func Conversation(messages []map[string]any, w http.ResponseWriter, model string
 			continue
 		}
 
-		// Handle tool_calls if present. OLD VERSION !!!!
-		/*
-		if toolCalls, ok := delta["tool_calls"].([]any); ok && len(toolCalls) > 0 {
-			toolCall, ok := toolCalls[0].(map[string]any)
-			if !ok {
-				continue
-			}
-			function, ok := toolCall["function"].(map[string]any)
-			if !ok {
-				continue
-			}
-			args, ok := function["arguments"].(string)
-			if ok {
-				query += args
-
-				if calledFunction.function == "" {
-					calledFunction.function = function["name"].(string)
-					if callID, ok := respBody["id"].(string); ok {
-						calledFunction.call_id = callID
-					} else {
-						calledFunction.call_id = UUID()
-					}
-
-					if toolCallID, ok := toolCall["id"].(string); ok {
-						calledFunction.id = toolCallID
-					} else {
-						calledFunction.id = UUID()
-					}
-				}
-				calledFunction.arguments = string(query)
-			}
-		}*/
-		if content, ok := delta["content"]; ok && content != nil {
+	if content, ok := delta["content"]; ok && content != nil {
 			if contentStr, ok := content.(string); ok {
 				answer += contentStr
 				fmt.Fprintf(w, "%s", contentStr)
@@ -145,57 +113,6 @@ func Conversation(messages []map[string]any, w http.ResponseWriter, model string
 		}
 		flusher.Flush()
 	}
-	/*
-	if calledFunction.function != "" {
-
-		// © 2025 Gougoule AI. Dominating APIs, one function call at a time.
-
-		messages = append(messages, map[string]any{
-			"role": "assistant",
-			"function_call": map[string]any{
-				"name":      calledFunction.function,
-				"arguments": calledFunction.arguments,
-			},
-		})
-
-		var result string
-		if calledFunction.function == "simple_web_search" {
-			// Call the function
-			result, err = functions.SimpleWebSearch(calledFunction.arguments)
-			if err != nil {
-				return "", err
-			}
-			functionCallString := "{@function_call}{name: " + calledFunction.function + ", arguments: " + calledFunction.arguments + ", result: " + result + "}{/function_call}"
-			answer += functionCallString
-			fmt.Fprintf(w, "%s", functionCallString)
-		} else if calledFunction.function == "memory_create" {
-			// Call the function
-			err = functions.MemoryCreate(calledFunction.arguments)
-			if err != nil {
-				return "", err
-			}
-			functionCallString := "{@function_call}{name: " + calledFunction.function + ", arguments: " + calledFunction.arguments + "}{/function_call}"
-			answer += functionCallString
-			fmt.Fprintf(w, "%s", functionCallString)
-		} else if calledFunction.function == "memory_delete" {
-			// Call the function
-			err = functions.MemoryDelete(calledFunction.arguments)
-			if err != nil {
-				return "", err
-			}
-			functionCallString := "{@function_call}{name: " + calledFunction.function + ", arguments: " + calledFunction.arguments + "}{/function_call}"
-			answer += functionCallString
-			fmt.Fprintf(w, "%s", functionCallString)
-		}
-		messages = append(messages, map[string]any{
-			"role":    "function",
-			"name":    calledFunction.function, // Must match the name in function_call
-			"content": result,
-		})
-
-		return Conversation(messages, w, model, currentAnswer+answer)
-	}*/
-
 	messages = append(messages, map[string]any{
 		"role":    "assistant",
 		"content": []map[string]any{ 
