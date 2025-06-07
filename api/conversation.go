@@ -55,15 +55,6 @@ func Conversation(messages []map[string]any, w http.ResponseWriter, model string
 	defer resp.Body.Close()
 
 	answer := ""
-	/*
-	query := ""
-	var calledFunction struct {
-		function  string
-		id        string
-		call_id   string
-		arguments string
-	}
-	*/
 
 	flusher, ok := w.(http.Flusher)
 	if !ok {
