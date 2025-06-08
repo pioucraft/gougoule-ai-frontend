@@ -97,11 +97,9 @@
             });
         }
         await readStream();
-        console.log(newMessagesHistory[newMessagesHistory.length - 1]);
         if(newMessagesHistory[newMessagesHistory.length - 1].content.includes("{@redirect}")) {
             handleRedirect(newMessagesHistory[newMessagesHistory.length - 1].content);
         }
-        messagesHistory.set(newMessagesHistory);
     }
 
     function handleRedirect(text) {
