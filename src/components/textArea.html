@@ -11,6 +11,19 @@
 </div>
 
 <script>
+    onMount.push(() => {
+        // get the ?q=
+        const urlParams = new URLSearchParams(window.location.search);
+        const query = urlParams.get("q");
+        if (query) {
+            document.getElementById("message").value = query;
+            adjustTextareaHeight();
+            ask();
+        } else {
+            document.getElementById("message").focus();
+        }
+    })
+
     async function ask() {
         let message = document.getElementById("message").value;
         document.getElementById("message").value = "";

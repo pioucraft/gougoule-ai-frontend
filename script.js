@@ -271,9 +271,9 @@ window.addEventListener("load", () => {
         span.hidden = true;
         element.appendChild(span);
     });
-    setTimeout(() => {
-        onMount.forEach((element) => {
-            element();
-        });
+    setTimeout(async () => {
+        for (i=0; i < onMount.length; i++) {
+            await onMount[i]();
+        }
     }, 0);
 });
