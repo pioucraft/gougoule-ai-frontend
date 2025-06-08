@@ -71,8 +71,8 @@
 
         const reader = answer.body.getReader();
         const decoder = new TextDecoder();
-        function readStream() {
-            reader.read().then(function processText({ done, value }) {
+        async function readStream() {
+            await reader.read().then(async function processText({ done, value }) {
                 if (done) {
                     return;
                 }
@@ -93,13 +93,23 @@
                 );
 
 
-                readStream();
+                await readStream();
             });
         }
-        readStream();
+        await readStream();
+        console.log(newMessagesHistory[newMessagesHistory.length - 1]);
+        if(newMessagesHistory[newMessagesHistory.length - 1].content.includes("{@redirect}")) {
+            handleRedirect(newMessagesHistory[newMessagesHistory.length - 1].content);
+        }
         messagesHistory.set(newMessagesHistory);
     }
 
+    function handleRedirect(text) {
+        let redirectURL = text.split("{@redirect}")[1].split("{/redirect}")[0];
+        if (redirectURL) {
+            window.location.href = redirectURL
+        }
+    }
     function adjustTextareaHeight() {
         const textarea = document.getElementById("message");
         textarea.style.height = "auto"; // Reset height to calculate the new height
