@@ -6,6 +6,7 @@ import (
 	"framework/api/db"
 	"log"
 	"net/http"
+	"strings"
 
 	"github.com/joho/godotenv"
 	json "github.com/json-iterator/go"
@@ -79,9 +80,14 @@ func ask(question string, model string, conversation_id *string, w http.Response
 	w.Header().Set("Transfer-Encoding", "chunked")
 	w.Header().Set("conversation_id", *conversation_id)
 
-	answer, err := Conversation(messages, w, model, "")
-	if err != nil {
-		return "", err
+	var answer string 
+	if strings.HasPrefix(question, "!") {
+		answer, err = handleBangs(question, w)
+	} else {
+		answer, err = Conversation(messages, w, model, "")
+		if err != nil {
+			return "", err
+		}
 	}
 
 	// Save the question and answer to the database.
@@ -90,6 +96,25 @@ func ask(question string, model string, conversation_id *string, w http.Response
 		return "", err
 	}
 	return answer, nil
+}
+
+func handleBangs(question string, w http.ResponseWriter) (string, error) {
+	w.Header().Set("Content-Type", "text/plain")
+	bangAndQuery := strings.SplitN(question, " ", 2)
+	bang := bangAndQuery[0][1:] // Remove the '!' prefix
+	query := bangAndQuery[1] // The rest of the question after the bang
+
+	switch bang {
+		case "g":
+			returnStatement := fmt.Sprintf("{@redirect}https://google.com/search?q=%s{/redirect}", query)
+			w.Write([]byte(returnStatement))
+			return returnStatement, nil
+	}
+
+	// if bang is unavailable, return an error
+	w.WriteHeader(http.StatusNotImplemented)
+	w.Write([]byte("This bang command is not implemented yet."))
+	return "", fmt.Errorf("bang command '%s' is not implemented", bang)
 }
 
 func saveToDB(question string, answer string, conversation_id string) error {
