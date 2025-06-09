@@ -22,9 +22,17 @@ import (
 var devMode *bool
 
 func openAIAPIRequest(modelName string, messages []map[string]any, url string, api_key string) (*http.Response, error) {
-		data := map[string]any{
+	newMessages := make([]map[string]any, len(messages))
+	fmt.Println(messages)
+	for i, msg := range messages {
+		newMessages[i] = make(map[string]any)
+		newMessages[i]["role"] = msg["role"]
+		newMessages[i]["content"] = msg["content"].([]map[string]any)[0]["text"]
+	}
+
+	data := map[string]any{
 		"model":    modelName,
-		"messages": messages,
+		"messages": newMessages,
 		"stream":   true,
 		"response_format": map[string]string{
 			"type": "text",
