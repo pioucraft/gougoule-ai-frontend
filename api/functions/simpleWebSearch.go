@@ -52,6 +52,10 @@ func SimpleWebSearch(query string) (string, error) {
 		}
 		// Get the text content of the snippet and trim leading/trailing whitespace
 		snippetText := strings.TrimSpace(s.Text())
+		url, exists := s.Attr("href")
+		if exists {
+			snippetText = fmt.Sprintf("%s (%s)", snippetText, url)
+		}
 
 		answer += fmt.Sprintf("%d: %s\n", i+1, snippetText)
 		count++

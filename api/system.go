@@ -32,6 +32,9 @@ func SystemPrompt() string {
 	I have access to informations I saved from older conversations, which are stored in memory cells. each memory cell contains an information about the user. 
 	I can create memory cells using the appropriate functions. I should always be ready to create a new memory cell if I learn something new about the user, even if the user doesn't explicitly ask for it. Every single new thing I learn about the user, or their projects should be saved.
 
+	If the user asks me to open a website, I can use the simple_web_search function to search for the website URL and then use the following syntax to open the website :
+	{@redirect}https://example.com{/redirect}
+
 	If the user asks me to, I can also delete memory cells.
 	The current date and time is :
 	` + time.Now().Format("2006-01-02 15:04:05") +
