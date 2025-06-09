@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"strings"
+	"net/url"
 
 	"github.com/joho/godotenv"
 	json "github.com/json-iterator/go"
@@ -103,6 +104,7 @@ func handleBangs(question string, w http.ResponseWriter) (string, error) {
 	bangAndQuery := strings.SplitN(question, " ", 2)
 	bang := bangAndQuery[0][1:] // Remove the '!' prefix
 	query := bangAndQuery[1] // The rest of the question after the bang
+	query = url.QueryEscape(query) // Escape the query for URL usage
 
 	switch bang {
 		case "g":
