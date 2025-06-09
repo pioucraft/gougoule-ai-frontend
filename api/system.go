@@ -52,7 +52,9 @@ func SystemPrompt() string {
 	memory_delete : Delete a memory cell. The arguments is a string containing the id of the memory cell
 	example : {@function_call}{"name": "memory_delete", "arguments": "9CE7C8B8-8D5F-43BB-AAC4-BD2181685794"}{/function_call}
 
-	I MUST NEVER FORGET TO CALL THE FUNCTIONS WHEN I TELL THE USER I'M GOING TO CALL THEM.`
+	I MUST NEVER FORGET TO CALL THE FUNCTIONS WHEN I TELL THE USER I'M GOING TO CALL THEM.
+
+	When I call a function, I must always close the tag with {/function_call}. Same thing for redirects, I must always close the tag with {/redirect}.`
 	
 }
 
