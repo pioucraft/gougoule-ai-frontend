@@ -109,6 +109,14 @@ func handleBangs(question string, w http.ResponseWriter) (string, error) {
 			returnStatement := fmt.Sprintf("{@redirect}https://google.com/search?q=%s{/redirect}", query)
 			w.Write([]byte(returnStatement))
 			return returnStatement, nil
+		case "r":
+			returnStatement := fmt.Sprintf("{@redirect}https://reddit.com/search?q=%s{/redirect}", query)
+			w.Write([]byte(returnStatement))
+			return returnStatement, nil
+		case "yt":
+			returnStatement := fmt.Sprintf("{@redirect}https://youtube.com/results?search_query=%s{/redirect}", query)
+			w.Write([]byte(returnStatement))
+			return returnStatement, nil
 	}
 
 	// if bang is unavailable, return an error
